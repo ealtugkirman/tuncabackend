@@ -1,0 +1,208 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+  SUPERADMIN
+  ADMIN
+  EDITOR
+}
+
+enum ApplicationStatus {
+  PENDING
+  REVIEWED
+  ACCEPTED
+  REJECTED
+}
+
+enum MessageStatus {
+  NEW
+  READ
+  REPLIED
+}
+
+enum PositionType {
+  LAWYER
+  LEGAL_INTERN
+  SUMMER_INTERN
+}
+
+// Admin users
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      UserRole @default(ADMIN)
+  createdAt DateTime @default(now())
+  lastLogin DateTime?
+  createdBy String?
+
+  // Relations
+  createdUsers User[] @relation("UserCreatedBy")
+  creator      User?   @relation("UserCreatedBy", fields: [createdBy], references: [id])
+
+  @@map("users")
+}
+
+// Lawyers/Team members
+model Lawyer {
+  id            String   @id @default(cuid())
+  name          String
+  title         String
+  education     String[]
+  bar           String
+  languages     String[]
+  practiceAreas String[]
+  image         String?
+  imagePublicId String?
+  isPartner     Boolean  @default(false)
+  isFounder     Boolean  @default(false)
+  isIntern      Boolean  @default(false)
+  hasPhD        Boolean  @default(false)
+  certifications String[]
+  bio           String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  publications Publication[]
+
+  @@map("lawyers")
+}
+
+// Announcements
+model Announcement {
+  id            String   @id @default(cuid())
+  title         String
+  date          String
+  year          String
+  excerpt       String
+  content       String
+  image         String?
+  imagePublicId String?
+  category      String
+  isDark        Boolean  @default(false)
+  published     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("announcements")
+}
+
+// Events
+model Event {
+  id            String   @id @default(cuid())
+  title         String
+  date          String
+  year          String
+  excerpt       String
+  content       String
+  image         String?
+  imagePublicId String?
+  eventType     String
+  category      String
+  location      String?
+  published     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("events")
+}
+
+// Publications
+model Publication {
+  id          String   @id @default(cuid())
+  title       String
+  date        String
+  year        String
+  excerpt     String
+  content     String
+  practiceArea String
+  category    String
+  author      String
+  tags        String[]
+  published   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  lawyerId    String?
+  lawyer      Lawyer?  @relation(fields: [lawyerId], references: [id])
+
+  @@map("publications")
+}
+
+// Newsletter subscribers
+model NewsletterSubscriber {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  subscribed    Boolean   @default(true)
+  subscribedAt  DateTime  @default(now())
+  unsubscribedAt DateTime?
+  source        String    @default("website")
+  ipAddress     String?
+  userAgent     String?
+  createdAt     DateTime  @default(now())
+
+  @@map("newsletter_subscribers")
+}
+
+// Career applications
+model CareerApplication {
+  id           String           @id @default(cuid())
+  positionType PositionType
+  fullName     String
+  email        String
+  phone        String
+  cv           String
+  coverLetter  String?
+  education    String?
+  experience   String?
+  languages    String[]
+  status       ApplicationStatus @default(PENDING)
+  appliedAt    DateTime         @default(now())
+  reviewedAt   DateTime?
+
+  @@map("career_applications")
+}
+
+// Contact messages
+model ContactMessage {
+  id          String        @id @default(cuid())
+  name        String
+  email       String
+  phone       String?
+  subject     String
+  message     String
+  practiceArea String?
+  status      MessageStatus @default(NEW)
+  createdAt   DateTime      @default(now())
+  repliedAt   DateTime?
+
+  @@map("contact_messages")
+}
+
+// Media files
+model MediaFile {
+  id          String   @id @default(cuid())
+  filename    String
+  path        String
+  mimeType    String
+  size        Int
+  uploadedBy  String
+  uploadedAt  DateTime @default(now())
+  alt         String?
+  category    String
+
+  @@map("media_files")
+}
