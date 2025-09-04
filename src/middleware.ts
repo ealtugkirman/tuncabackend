@@ -1,7 +1,7 @@
 import { withAuth } from 'next-auth/middleware'
 
 export default withAuth(
-  function middleware(req) {
+  function middleware() {
     // This function runs after the authorized callback
     // The authorized callback handles the main logic
   },
@@ -28,7 +28,6 @@ export default withAuth(
 
 export const config = {
   matcher: [
-    '/admin/:path*',
-    '/login',
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ]
 }

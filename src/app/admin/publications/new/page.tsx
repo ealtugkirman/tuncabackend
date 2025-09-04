@@ -6,19 +6,30 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { ArrowLeft, Save } from 'lucide-react'
+import { Language } from '@prisma/client'
+import { PublicationMultilingualForm } from '@/components/admin/PublicationMultilingualForm'
 
 const publicationSchema = z.object({
-  title: z.string().min(1, 'Başlık gereklidir'),
   date: z.string().min(1, 'Tarih gereklidir'),
   year: z.string().min(1, 'Yıl gereklidir'),
-  excerpt: z.string().min(1, 'Özet gereklidir'),
-  content: z.string().min(1, 'İçerik gereklidir'),
-  practiceArea: z.string().min(1, 'Çalışma alanı gereklidir'),
   category: z.string().min(1, 'Kategori gereklidir'),
-  author: z.string().min(1, 'Yazar gereklidir'),
-  tags: z.string().optional(),
+  lawyerIds: z.array(z.string()).min(1, 'En az bir avukat seçilmelidir'),
   published: z.boolean().default(false),
-  lawyerId: z.string().optional()
+  language: z.nativeEnum(Language).default(Language.TR),
+  translations: z
+    .array(
+      z.object({
+        language: z.nativeEnum(Language),
+        title: z.string().min(1, 'Başlık gereklidir'),
+        excerpt: z.string().min(1, 'Özet gereklidir'),
+        content: z.string().min(1, 'İçerik gereklidir'),
+      })
+    )
+    .min(2, 'Türkçe ve İngilizce içerik zorunludur')
+    .refine(
+      (arr) => arr.some((t) => t.language === Language.TR) && arr.some((t) => t.language === Language.EN),
+      { message: 'TR ve EN çevirileri zorunludur' }
+    )
 })
 
 type PublicationForm = z.infer<typeof publicationSchema>
@@ -28,6 +39,12 @@ export default function NewPublicationPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [lawyers, setLawyers] = useState([])
+  const [translations, setTranslations] = useState<Array<{
+    language: Language
+    title?: string
+    excerpt?: string
+    content?: string
+  }>>([])
 
   const {
     register,
@@ -38,25 +55,26 @@ export default function NewPublicationPage() {
   } = useForm<PublicationForm>({
     resolver: zodResolver(publicationSchema),
     defaultValues: {
-      published: false
+      published: false,
+      translations: []
     }
   })
 
   const published = watch('published')
 
+  // Fetch lawyers
   useEffect(() => {
     const fetchLawyers = async () => {
       try {
-        const response = await fetch('/api/lawyers')
+        const response = await fetch('/api/lawyers?language=TR')
         if (response.ok) {
-          const data = await response.json()
-          setLawyers(data)
+          const result = await response.json()
+          setLawyers(result.data || [])
         }
-      } catch (err) {
-        console.error('Error fetching lawyers:', err)
+      } catch (error) {
+        console.error('Error fetching lawyers:', error)
       }
     }
-
     fetchLawyers()
   }, [])
 
@@ -75,7 +93,7 @@ export default function NewPublicationPage() {
         },
         body: JSON.stringify({
           ...data,
-          tags: tagsArray
+          translations
         }),
       })
 
@@ -109,22 +127,15 @@ export default function NewPublicationPage() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <div className="bg-white shadow rounded-lg p-6">
+        {/* Multilingual Content */}
+        <PublicationMultilingualForm
+          translations={translations}
+          onTranslationsChange={setTranslations}
+        />
+
+        <div className="bg-white shadow rounded-lg p-6 mt-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Başlık *
-              </label>
-              <input
-                {...register('title')}
-                type="text"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Yayın başlığı"
-              />
-              {errors.title && (
-                <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
-              )}
-            </div>
+            {/* Title handled in translations */}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -132,9 +143,8 @@ export default function NewPublicationPage() {
               </label>
               <input
                 {...register('date')}
-                type="text"
+                type="date"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="10 Aralık 2024"
               />
               {errors.date && (
                 <p className="mt-1 text-sm text-red-600">{errors.date.message}</p>
@@ -147,7 +157,9 @@ export default function NewPublicationPage() {
               </label>
               <input
                 {...register('year')}
-                type="text"
+                type="number"
+                min="2020"
+                max="2030"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 placeholder="2024"
               />
@@ -158,16 +170,21 @@ export default function NewPublicationPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Yazar *
+                Avukat (Yazar) *
               </label>
-              <input
-                {...register('author')}
-                type="text"
+              <select
+                {...register('lawyerId')}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Yazar adı"
-              />
-              {errors.author && (
-                <p className="mt-1 text-sm text-red-600">{errors.author.message}</p>
+              >
+                <option value="">Avukat seçiniz</option>
+                {lawyers && Array.isArray(lawyers) && lawyers.map((lawyer: any) => (
+                  <option key={lawyer.id} value={lawyer.id}>
+                    {lawyer.name}
+                  </option>
+                ))}
+              </select>
+              {errors.lawyerIds && (
+                <p className="mt-1 text-sm text-red-600">{(errors.lawyerIds as any).message}</p>
               )}
             </div>
 
@@ -180,12 +197,34 @@ export default function NewPublicationPage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="">Seçiniz</option>
-                <option value="Kurumsal Hukuk">Kurumsal Hukuk</option>
-                <option value="İş Hukuku">İş Hukuku</option>
-                <option value="Ticaret Hukuku">Ticaret Hukuku</option>
-                <option value="Sermaye Piyasaları">Sermaye Piyasaları</option>
                 <option value="Birleşme ve Devralmalar">Birleşme ve Devralmalar</option>
-                <option value="Diğer">Diğer</option>
+                <option value="Bankacılık ve Finans Hukuku">Bankacılık ve Finans Hukuku</option>
+                <option value="Uluslararası Ticaret Hukuku">Uluslararası Ticaret Hukuku</option>
+                <option value="Sağlık ve İlaç Hukuku">Sağlık ve İlaç Hukuku</option>
+                <option value="Dava Takibi ve Tahkim">Dava Takibi ve Tahkim</option>
+                <option value="Enerji Hukuku">Enerji Hukuku</option>
+                <option value="Kamu İhale Hukuku">Kamu İhale Hukuku</option>
+                <option value="İş Hukuku">İş Hukuku</option>
+                <option value="Maden ve Petrol Hukuku">Maden ve Petrol Hukuku</option>
+                <option value="Vergi Hukuku">Vergi Hukuku</option>
+                <option value="Gayrimenkul ve İnşaat Hukuku">Gayrimenkul ve İnşaat Hukuku</option>
+                <option value="Şirketler Hukuku">Şirketler Hukuku</option>
+                <option value="Spor Hukuku">Spor Hukuku</option>
+                <option value="Fikri Mülkiyet Hukuku">Fikri Mülkiyet Hukuku</option>
+                <option value="Rekabet Hukuku">Rekabet Hukuku</option>
+                <option value="Corporate Law & Mergers, Acquisitions and Spin-offs">Corporate Law & Mergers, Acquisitions and Spin-offs</option>
+                <option value="Banking and Finance Law">Banking and Finance Law</option>
+                <option value="International Commercial Law & Arbitration">International Commercial Law & Arbitration</option>
+                <option value="Health and Pharmaceutical Law">Health and Pharmaceutical Law</option>
+                <option value="International Commercial Arbitration & Investment Arbitration">International Commercial Arbitration & Investment Arbitration</option>
+                <option value="Energy and Mining Law">Energy and Mining Law</option>
+                <option value="Public Procurement Law">Public Procurement Law</option>
+                <option value="Labor and Social Security Law">Labor and Social Security Law</option>
+                <option value="Tax Law">Tax Law</option>
+                <option value="Construction and Zoning Law">Construction and Zoning Law</option>
+                <option value="Sports Law">Sports Law</option>
+                <option value="Intellectual and Industrial Property Law">Intellectual and Industrial Property Law</option>
+                <option value="Competition Law">Competition Law</option>
               </select>
               {errors.practiceArea && (
                 <p className="mt-1 text-sm text-red-600">{errors.practiceArea.message}</p>
@@ -212,67 +251,13 @@ export default function NewPublicationPage() {
               )}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Avukat (Opsiyonel)
-              </label>
-              <select
-                {...register('lawyerId')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="">Seçiniz</option>
-                {lawyers.map((lawyer: any) => (
-                  <option key={lawyer.id} value={lawyer.id}>
-                    {lawyer.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            
 
-            <div className="lg:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Etiketler
-              </label>
-              <input
-                {...register('tags')}
-                type="text"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="İş Hukuku, Mevzuat, İşveren Hakları (virgülle ayırın)"
-              />
-              <p className="mt-1 text-sm text-gray-500">
-                Etiketleri virgülle ayırarak girin
-              </p>
-            </div>
+            
 
-            <div className="lg:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Özet *
-              </label>
-              <textarea
-                {...register('excerpt')}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Yayın hakkında kısa açıklama"
-              />
-              {errors.excerpt && (
-                <p className="mt-1 text-sm text-red-600">{errors.excerpt.message}</p>
-              )}
-            </div>
+            {/* Excerpt handled in translations */}
 
-            <div className="lg:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                İçerik *
-              </label>
-              <textarea
-                {...register('content')}
-                rows={10}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Yayın detayları (HTML formatında)"
-              />
-              {errors.content && (
-                <p className="mt-1 text-sm text-red-600">{errors.content.message}</p>
-              )}
-            </div>
+            {/* Content handled in translations */}
 
             <div className="lg:col-span-2">
               <div className="flex items-center">

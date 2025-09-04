@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
+import { DEFAULT_LANGUAGE, generateSlug } from '@/lib/i18n'
+import { Language } from '@prisma/client'
 
 // GET /api/lawyers/[id] - Get single lawyer
 export async function GET(
@@ -8,9 +10,15 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    const { searchParams } = new URL(request.url)
+    const language = (searchParams.get('language') as Language) || DEFAULT_LANGUAGE
+
     const lawyer = await prisma.lawyer.findUnique({
       where: { id: params.id },
       include: {
+        translations: {
+          where: { language }
+        },
         publications: {
           where: { published: true },
           orderBy: { createdAt: 'desc' }
@@ -25,7 +33,17 @@ export async function GET(
       )
     }
 
-    return NextResponse.json(lawyer)
+    // Transform to include translation data at root level
+    const translation = lawyer.translations[0]
+    const result = {
+      ...lawyer,
+      name: translation?.name || '',
+      title: translation?.title || '',
+      bio: translation?.bio || '',
+      translations: undefined // Remove translations from response
+    }
+
+    return NextResponse.json(result)
   } catch (error) {
     console.error('Error fetching lawyer:', error)
     return NextResponse.json(

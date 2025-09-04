@@ -36,6 +36,23 @@ enum PositionType {
   SUMMER_INTERN
 }
 
+enum Language {
+  TR
+  EN
+}
+
+// Site settings and language management
+model SiteSettings {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  language  Language @default(TR)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("site_settings")
+}
+
 // Admin users
 model User {
   id        String   @id @default(cuid())
@@ -57,89 +74,154 @@ model User {
 // Lawyers/Team members
 model Lawyer {
   id            String   @id @default(cuid())
-  name          String
-  title         String
-  education     String[]
-  bar           String
-  languages     String[]
-  practiceAreas String[]
+  slug          String   @unique // URL-friendly identifier
   image         String?
   imagePublicId String?
   isPartner     Boolean  @default(false)
   isFounder     Boolean  @default(false)
   isIntern      Boolean  @default(false)
-  hasPhD        Boolean  @default(false)
-  certifications String[]
-  bio           String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   // Relations
   publications Publication[]
+  announcements Announcement[]
+  translations LawyerTranslation[]
 
   @@map("lawyers")
+}
+
+// Lawyer translations
+model LawyerTranslation {
+  id            String      @id @default(cuid())
+  lawyerId      String
+  language      Language
+  name          String
+  bio           String?
+  education     String?
+  languages     String?
+  practiceAreas String[]
+  bar           String?
+  phone         String?
+  email         String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  // Relations
+  lawyer        Lawyer      @relation(fields: [lawyerId], references: [id], onDelete: Cascade)
+
+  @@unique([lawyerId, language])
+  @@map("lawyer_translations")
 }
 
 // Announcements
 model Announcement {
   id            String   @id @default(cuid())
-  title         String
-  date          String
-  year          String
-  excerpt       String
-  content       String
+  slug          String   @unique // URL-friendly identifier
+  date          DateTime
   image         String?
   imagePublicId String?
-  category      String
   isDark        Boolean  @default(false)
   published     Boolean  @default(false)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  // Relations
+  lawyerId      String?
+  lawyer        Lawyer?  @relation(fields: [lawyerId], references: [id])
+  translations AnnouncementTranslation[]
+
   @@map("announcements")
+}
+
+// Announcement translations
+model AnnouncementTranslation {
+  id            String      @id @default(cuid())
+  announcementId String
+  language      Language
+  title         String
+  excerpt       String
+  content       String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  // Relations
+  announcement  Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+
+  @@unique([announcementId, language])
+  @@map("announcement_translations")
 }
 
 // Events
 model Event {
   id            String   @id @default(cuid())
-  title         String
-  date          String
-  year          String
-  excerpt       String
-  content       String
+  slug          String   @unique // URL-friendly identifier
+  date          DateTime
   image         String?
   imagePublicId String?
+  gallery       String[] // Array of image URLs for event gallery
   eventType     String
-  category      String
-  location      String?
   published     Boolean  @default(false)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  // Relations
+  translations EventTranslation[]
+
   @@map("events")
+}
+
+// Event translations
+model EventTranslation {
+  id            String      @id @default(cuid())
+  eventId       String
+  language      Language
+  title         String
+  excerpt       String
+  content       String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  // Relations
+  event         Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, language])
+  @@map("event_translations")
 }
 
 // Publications
 model Publication {
   id          String   @id @default(cuid())
-  title       String
-  date        String
-  year        String
-  excerpt     String
-  content     String
-  practiceArea String
-  category    String
-  author      String
-  tags        String[]
+  slug        String   @unique // URL-friendly identifier
+  date        DateTime
+  year        Int
   published   Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   // Relations
-  lawyerId    String?
-  lawyer      Lawyer?  @relation(fields: [lawyerId], references: [id])
+  lawyers     Lawyer[]
+  translations PublicationTranslation[]
 
   @@map("publications")
+}
+
+// Publication translations
+model PublicationTranslation {
+  id            String      @id @default(cuid())
+  publicationId String
+  language      Language
+  title         String
+  excerpt       String
+  content       String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  // Relations
+  publication   Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+
+  @@unique([publicationId, language])
+  @@map("publication_translations")
 }
 
 // Newsletter subscribers

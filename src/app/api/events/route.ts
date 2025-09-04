@@ -1,49 +1,115 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
+import { detectLanguage, DEFAULT_LANGUAGE, generateSlug, generateUniqueSlug } from '@/lib/i18n'
+import { Language } from '@prisma/client'
 
 // GET /api/events - Get all events
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const year = searchParams.get('year')
-    const category = searchParams.get('category')
+    // removed: year, category
     const eventType = searchParams.get('eventType')
     const search = searchParams.get('search')
     const published = searchParams.get('published')
+    const language = (searchParams.get('language') as Language) || DEFAULT_LANGUAGE
+    
+    // Pagination parameters
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '10')
+    const skip = (page - 1) * limit
+    
+    // Sorting parameters
+    const sortBy = searchParams.get('sortBy') || 'createdAt'
+    const sortOrder = searchParams.get('sortOrder') || 'desc'
+    
+    // Date range filters
+    const dateFrom = searchParams.get('dateFrom')
+    const dateTo = searchParams.get('dateTo')
 
     let whereClause: any = {}
 
-    if (year) {
-      whereClause.year = year
-    }
-
-    if (category) {
-      whereClause.category = category
-    }
+    // removed: year, category filters
 
     if (eventType) {
       whereClause.eventType = eventType
-    }
-
-    if (search) {
-      whereClause.OR = [
-        { title: { contains: search, mode: 'insensitive' } },
-        { excerpt: { contains: search, mode: 'insensitive' } },
-        { content: { contains: search, mode: 'insensitive' } }
-      ]
     }
 
     if (published !== null) {
       whereClause.published = published === 'true'
     }
 
-    const events = await prisma.event.findMany({
-      where: whereClause,
-      orderBy: { createdAt: 'desc' }
+    // Date range filtering
+    if (dateFrom || dateTo) {
+      whereClause.createdAt = {}
+      if (dateFrom) {
+        whereClause.createdAt.gte = new Date(dateFrom)
+      }
+      if (dateTo) {
+        whereClause.createdAt.lte = new Date(dateTo)
+      }
+    }
+
+    // Search in translations
+    if (search) {
+      whereClause.translations = {
+        some: {
+          language,
+          OR: [
+            { title: { contains: search, mode: 'insensitive' } },
+            { excerpt: { contains: search, mode: 'insensitive' } },
+            { content: { contains: search, mode: 'insensitive' } }
+          ]
+        }
+      }
+    }
+
+    // Get total count for pagination
+    const totalCount = await prisma.event.count({
+      where: whereClause
     })
 
-    return NextResponse.json(events)
+    // Get events with pagination
+    const events = await prisma.event.findMany({
+      where: whereClause,
+      include: {
+        translations: {
+          where: { language }
+        }
+      },
+      orderBy: { [sortBy]: sortOrder },
+      skip,
+      take: limit
+    })
+
+    // Transform to include translation data at root level
+    const result = events.map(event => {
+      const translation = event.translations[0]
+      return {
+        ...event,
+        title: translation?.title || '',
+        excerpt: translation?.excerpt || '',
+        content: translation?.content || '',
+        translations: undefined // Remove translations from response
+      }
+    })
+
+    // Calculate pagination info
+    const totalPages = Math.ceil(totalCount / limit)
+    const hasNextPage = page < totalPages
+    const hasPrevPage = page > 1
+
+    return NextResponse.json({
+      data: result,
+      pagination: {
+        page,
+        limit,
+        totalCount,
+        totalPages,
+        hasNextPage,
+        hasPrevPage
+      }
+    })
   } catch (error) {
     console.error('Error fetching events:', error)
     return NextResponse.json(
@@ -66,30 +132,38 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const {
-      title,
       date,
-      year,
-      excerpt,
-      content,
       image,
+      gallery,
       eventType,
-      category,
-      location,
-      published
+      published,
+      language = DEFAULT_LANGUAGE,
+      translations = []
     } = body
+
+    // Generate slug from first translation or fallback
+    const firstTranslation = translations[0]
+    const slug = firstTranslation ? generateUniqueSlug(firstTranslation.title, firstTranslation.language) : generateUniqueSlug('event', language)
 
     const event = await prisma.event.create({
       data: {
-        title,
-        date,
-        year,
-        excerpt,
-        content,
+        slug,
+        date: new Date(date),
         image,
+        gallery: gallery || [],
         eventType,
-        category,
-        location,
-        published: published || false
+        published: published || false,
+        translations: {
+          create: translations.map((translation: any) => ({
+            language: translation.language,
+            title: translation.title,
+            excerpt: translation.excerpt,
+            content: translation.content
+          }))
+        }
+      },
+      include: {
+        translations: true
       }
     })
 

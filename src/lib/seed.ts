@@ -9,7 +9,11 @@ async function main() {
   
   const superadmin = await prisma.user.upsert({
     where: { email: 'admin@tuncalaw.com' },
-    update: {},
+    update: {
+      password: hashedPassword,
+      name: 'Super Admin',
+      role: 'SUPERADMIN',
+    },
     create: {
       email: 'admin@tuncalaw.com',
       password: hashedPassword,
@@ -18,7 +22,27 @@ async function main() {
     },
   })
 
-  console.log('Superadmin user created:', superadmin)
+  console.log('Superadmin user created/updated:', superadmin)
+
+  // Create additional admin user
+  const adminHashedPassword = await bcrypt.hash('password123', 12)
+  
+  const admin = await prisma.user.upsert({
+    where: { email: 'admin@admin.com' },
+    update: {
+      password: adminHashedPassword,
+      name: 'Admin User',
+      role: 'ADMIN',
+    },
+    create: {
+      email: 'admin@admin.com',
+      password: adminHashedPassword,
+      name: 'Admin User',
+      role: 'ADMIN',
+    },
+  })
+
+  console.log('Admin user created/updated:', admin)
 
   // Create sample lawyers
   const lawyer1 = await prisma.lawyer.upsert({

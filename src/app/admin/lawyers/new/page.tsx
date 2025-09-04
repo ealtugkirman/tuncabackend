@@ -1,28 +1,41 @@
-'use client'
+"use client"
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { ArrowLeft, Save } from 'lucide-react'
-import ImageUpload from '@/components/ImageUpload'
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { z } from "zod"
+import { ArrowLeft, Save, User, Languages, Award, Camera } from "lucide-react"
+import ImageUpload from "@/components/ImageUpload"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { MultilingualForm } from "@/components/admin/MultilingualForm"
+import { Language } from "@prisma/client"
 
 const lawyerSchema = z.object({
-  name: z.string().min(1, 'Ad soyad gereklidir'),
-  title: z.string().min(1, 'Ünvan gereklidir'),
-  education: z.string().optional(),
-  bar: z.string().min(1, 'Baro bilgisi gereklidir'),
-  languages: z.string().optional(),
-  practiceAreas: z.string().optional(),
   image: z.string().optional(),
   imagePublicId: z.string().optional(),
   isPartner: z.boolean().default(false),
   isFounder: z.boolean().default(false),
   isIntern: z.boolean().default(false),
-  hasPhD: z.boolean().default(false),
-  certifications: z.string().optional(),
-  bio: z.string().optional()
+  language: z.nativeEnum(Language).default(Language.TR),
+  translations: z
+    .array(
+      z.object({
+        language: z.nativeEnum(Language),
+        name: z.string().optional(),
+        bio: z.string().optional(),
+        education: z.string().optional(),
+        languages: z.string().optional(),
+        practiceAreas: z.array(z.string()).optional(),
+        bar: z.string().optional(),
+        phone: z.string().optional(),
+        email: z.string().refine((val) => !val || z.string().email().safeParse(val).success, {
+          message: "Geçerli bir email adresi girin"
+        }).optional(),
+      }),
+    )
+    .optional(),
 })
 
 type LawyerForm = z.infer<typeof lawyerSchema>
@@ -30,310 +43,260 @@ type LawyerForm = z.infer<typeof lawyerSchema>
 export default function NewLawyerPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useState("")
+  const [translations, setTranslations] = useState<
+    Array<{
+      language: Language
+      name?: string
+      bio?: string
+      education?: string
+      languages?: string
+      practiceAreas?: string[]
+      bar?: string
+      phone?: string
+      email?: string
+    }>
+  >([
+    {
+      language: Language.TR,
+      name: "",
+      bio: "",
+      education: "",
+      languages: "",
+      practiceAreas: [],
+      bar: "",
+      phone: "",
+      email: "",
+    },
+  ])
 
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isValid },
     watch,
-    setValue
+    setValue,
   } = useForm<LawyerForm>({
     resolver: zodResolver(lawyerSchema),
     defaultValues: {
       isPartner: false,
       isFounder: false,
       isIntern: false,
-      hasPhD: false
-    }
+      language: Language.TR,
+      translations: [
+        {
+          language: Language.TR,
+          name: "",
+          bio: "",
+          education: "",
+          languages: "",
+          practiceAreas: [],
+          bar: "",
+          phone: "",
+          email: "",
+        },
+      ],
+    },
   })
 
-  const isPartner = watch('isPartner')
-  const isFounder = watch('isFounder')
-  const isIntern = watch('isIntern')
-  const hasPhD = watch('hasPhD')
+  const isPartner = watch("isPartner")
+  const isFounder = watch("isFounder")
+  const isIntern = watch("isIntern")
 
   const onSubmit = async (data: LawyerForm) => {
+    console.log("🚀 FORM SUBMITTED!")
+    console.log("Form submitted with data:", data)
+    console.log("Translations:", translations)
     setIsLoading(true)
-    setError('')
+    setError("")
 
     try {
-      // Convert comma-separated strings to arrays
-      const educationArray = data.education ? data.education.split(',').map(item => item.trim()).filter(item => item) : []
-      const languagesArray = data.languages ? data.languages.split(',').map(item => item.trim()).filter(item => item) : []
-      const practiceAreasArray = data.practiceAreas ? data.practiceAreas.split(',').map(item => item.trim()).filter(item => item) : []
-      const certificationsArray = data.certifications ? data.certifications.split(',').map(item => item.trim()).filter(item => item) : []
-
-      const response = await fetch('/api/lawyers', {
-        method: 'POST',
+      const requestBody = {
+        ...data,
+        translations: translations,
+      }
+      console.log("Request body:", requestBody)
+      
+      const response = await fetch("/api/lawyers", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          ...data,
-          education: educationArray,
-          languages: languagesArray,
-          practiceAreas: practiceAreasArray,
-          certifications: certificationsArray
-        }),
+        body: JSON.stringify(requestBody),
       })
 
       if (!response.ok) {
-        throw new Error('Avukat oluşturulamadı')
+        throw new Error("Avukat oluşturulamadı")
       }
 
       const lawyer = await response.json()
-      router.push('/admin/lawyers')
+      router.push("/admin/lawyers")
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Bir hata oluştu')
+      setError(err instanceof Error ? err.message : "Bir hata oluştu")
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center space-x-4">
-        <button
-          onClick={() => router.back()}
-          className="flex items-center text-slate-400 hover:text-slate-200 transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Geri
-        </button>
-        <div>
-          <h1 className="text-2xl font-bold text-slate-100">Yeni Avukat</h1>
-          <p className="text-slate-400">Yeni bir avukat ekleyin</p>
+    <div className="min-h-screen bg-slate-950 p-6">
+      <div className="max-w-4xl mx-auto space-y-8">
+        {/* Header Section */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Button
+              variant="ghost"
+              onClick={() => router.back()}
+              className="flex items-center text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Geri
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold text-white flex items-center">
+                <User className="w-8 h-8 mr-3 text-pink-400" />
+                Yeni Avukat
+              </h1>
+              <p className="text-slate-400 mt-1">Yeni bir avukat profili oluşturun</p>
+            </div>
+          </div>
         </div>
-      </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <div className="card">
-          <div className="card-body">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div>
-              <label className="form-label">
-                Ad Soyad *
-              </label>
-              <input
-                {...register('name')}
-                type="text"
-                className="form-input"
-                placeholder="Dr. Mehmet Tunca"
-              />
-              {errors.name && (
-                <p className="form-error">{errors.name.message}</p>
-              )}
-            </div>
+        {/* Debug Info */}
+        <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4">
+          <p><strong>Debug Info:</strong></p>
+          <p>Form Valid: {isValid ? 'Yes' : 'No'}</p>
+          <p>Errors: {JSON.stringify(errors, null, 2)}</p>
+          <p>Translations Count: {translations.length}</p>
+        </div>
 
-            <div>
-              <label className="form-label">
-                Ünvan *
-              </label>
-              <input
-                {...register('title')}
-                type="text"
-                className="form-input"
-                placeholder="ORTAK AVUKAT"
-              />
-              {errors.title && (
-                <p className="form-error">{errors.title.message}</p>
-              )}
-            </div>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+          {/* Multilingual Content */}
+          <Card className="bg-slate-900/50 border-slate-700 backdrop-blur-sm">
+            <CardHeader className="border-b border-slate-700">
+              <CardTitle className="text-white flex items-center">
+                <Languages className="w-5 h-5 mr-2 text-pink-400" />
+                Çok Dilli Avukat Bilgileri
+              </CardTitle>
+              <CardDescription className="text-slate-400">Avukatın tüm bilgilerini Türkçe ve İngilizce olarak girin</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <MultilingualForm translations={translations} onTranslationsChange={setTranslations} />
+            </CardContent>
+          </Card>
 
-            <div>
-              <label className="form-label">
-                Baro *
-              </label>
-              <input
-                {...register('bar')}
-                type="text"
-                className="form-input"
-                placeholder="Ankara Barosu"
-              />
-              {errors.bar && (
-                <p className="form-error">{errors.bar.message}</p>
-              )}
-            </div>
-
-            <div className="lg:col-span-2">
-              <label className="form-label">
+          {/* Profile Image */}
+          <Card className="bg-slate-900/50 border-slate-700 backdrop-blur-sm">
+            <CardHeader className="border-b border-slate-700">
+              <CardTitle className="text-white flex items-center">
+                <Camera className="w-5 h-5 mr-2 text-pink-400" />
                 Profil Fotoğrafı
-              </label>
+              </CardTitle>
+              <CardDescription className="text-slate-400">Avukatın profil fotoğrafını yükleyin</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6">
               <ImageUpload
-                value={watch('image')}
+                value={watch("image")}
                 onChange={(url, publicId) => {
-                  setValue('image', url)
-                  setValue('imagePublicId', publicId || '')
+                  setValue("image", url)
+                  setValue("imagePublicId", publicId || "")
                 }}
                 folder="lawyers"
                 className="w-full"
               />
-            </div>
+            </CardContent>
+          </Card>
 
-            <div className="lg:col-span-2">
-              <label className="form-label">
-                Eğitim
-              </label>
-              <textarea
-                {...register('education')}
-                rows={2}
-                className="form-textarea"
-                placeholder="Ankara Üniversitesi Hukuk Fakültesi, LL.M. Harvard Law School (virgülle ayırın)"
-              />
-              <p className="form-help">
-                Eğitim bilgilerini virgülle ayırarak girin
-              </p>
-            </div>
 
-            <div>
-              <label className="form-label">
-                Diller
-              </label>
-              <input
-                {...register('languages')}
-                type="text"
-                className="form-input"
-                placeholder="İngilizce, Almanca (virgülle ayırın)"
-              />
-              <p className="form-help">
-                Dilleri virgülle ayırarak girin
-              </p>
-            </div>
-
-            <div>
-              <label className="form-label">
-                Çalışma Alanları
-              </label>
-              <input
-                {...register('practiceAreas')}
-                type="text"
-                className="form-input"
-                placeholder="Kurumsal Hukuk, Birleşme ve Devralmalar (virgülle ayırın)"
-              />
-              <p className="form-help">
-                Çalışma alanlarını virgülle ayırarak girin
-              </p>
-            </div>
-
-            <div>
-              <label className="form-label">
-                Sertifikalar
-              </label>
-              <input
-                {...register('certifications')}
-                type="text"
-                className="form-input"
-                placeholder="CFA, CPA (virgülle ayırın)"
-              />
-              <p className="form-help">
-                Sertifikaları virgülle ayırarak girin
-              </p>
-            </div>
-
-            <div className="lg:col-span-2">
-              <label className="form-label">
-                Biyografi
-              </label>
-              <textarea
-                {...register('bio')}
-                rows={4}
-                className="form-textarea"
-                placeholder="Avukat hakkında kısa biyografi"
-              />
-            </div>
-
-            <div className="lg:col-span-2">
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium text-slate-100">Özellikler</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex items-center">
-                    <input
-                      {...register('isPartner')}
-                      type="checkbox"
-                      id="isPartner"
-                      className="form-checkbox"
-                    />
-                    <label htmlFor="isPartner" className="ml-2 block text-sm text-slate-200">
-                      Ortak
-                    </label>
-                  </div>
-
-                  <div className="flex items-center">
-                    <input
-                      {...register('isFounder')}
-                      type="checkbox"
-                      id="isFounder"
-                      className="form-checkbox"
-                    />
-                    <label htmlFor="isFounder" className="ml-2 block text-sm text-slate-200">
-                      Kurucu
-                    </label>
-                  </div>
-
-                  <div className="flex items-center">
-                    <input
-                      {...register('isIntern')}
-                      type="checkbox"
-                      id="isIntern"
-                      className="form-checkbox"
-                    />
-                    <label htmlFor="isIntern" className="ml-2 block text-sm text-slate-200">
-                      Stajyer
-                    </label>
-                  </div>
-
-                  <div className="flex items-center">
-                    <input
-                      {...register('hasPhD')}
-                      type="checkbox"
-                      id="hasPhD"
-                      className="form-checkbox"
-                    />
-                    <label htmlFor="hasPhD" className="ml-2 block text-sm text-slate-200">
-                      Doktora
-                    </label>
-                  </div>
+          {/* Special Attributes */}
+          <Card className="bg-slate-900/50 border-slate-700 backdrop-blur-sm">
+            <CardHeader className="border-b border-slate-700">
+              <CardTitle className="text-white flex items-center">
+                <Award className="w-5 h-5 mr-2 text-pink-400" />
+                Özellikler
+              </CardTitle>
+              <CardDescription className="text-slate-400">Avukatın özel niteliklerini seçin</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex items-center p-4 bg-slate-800/50 rounded-lg border border-slate-700 hover:border-slate-600 transition-colors">
+                  <input
+                    {...register("isPartner")}
+                    type="checkbox"
+                    id="isPartner"
+                    className="w-4 h-4 text-pink-400 bg-slate-700 border-slate-600 rounded focus:ring-pink-400 focus:ring-2"
+                  />
+                  <label htmlFor="isPartner" className="ml-3 text-slate-200 font-medium">
+                    Ortak
+                  </label>
                 </div>
+
+                <div className="flex items-center p-4 bg-slate-800/50 rounded-lg border border-slate-700 hover:border-slate-600 transition-colors">
+                  <input
+                    {...register("isFounder")}
+                    type="checkbox"
+                    id="isFounder"
+                    className="w-4 h-4 text-pink-400 bg-slate-700 border-slate-600 rounded focus:ring-pink-400 focus:ring-2"
+                  />
+                  <label htmlFor="isFounder" className="ml-3 text-slate-200 font-medium">
+                    Kurucu
+                  </label>
+                </div>
+
+                <div className="flex items-center p-4 bg-slate-800/50 rounded-lg border border-slate-700 hover:border-slate-600 transition-colors">
+                  <input
+                    {...register("isIntern")}
+                    type="checkbox"
+                    id="isIntern"
+                    className="w-4 h-4 text-pink-400 bg-slate-700 border-slate-600 rounded focus:ring-pink-400 focus:ring-2"
+                  />
+                  <label htmlFor="isIntern" className="ml-3 text-slate-200 font-medium">
+                    Stajyer
+                  </label>
+                </div>
+
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-900/20 border border-red-800 rounded-lg p-4">
+              <p className="text-red-400 text-center">{error}</p>
             </div>
-          </div>
-          </div>
-        </div>
+          )}
 
-        {error && (
-          <div className="text-red-400 text-sm text-center bg-red-900/20 border border-red-800 rounded-lg p-3">
-            {error}
+          {/* Action Buttons */}
+          <div className="flex justify-end space-x-4 pt-6">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.back()}
+              className="px-6 py-3 border-slate-600 text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+            >
+              İptal
+            </Button>
+            <Button
+              type="submit"
+              disabled={isLoading}
+              onClick={() => console.log("🔴 BUTTON CLICKED!")}
+              className="px-6 py-3 bg-pink-500 hover:bg-pink-600 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+            >
+              {isLoading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                  Kaydediliyor...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Kaydet
+                </>
+              )}
+            </Button>
           </div>
-        )}
-
-        <div className="flex justify-end space-x-4">
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="btn-outline"
-          >
-            İptal
-          </button>
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="btn-primary flex items-center"
-          >
-            {isLoading ? (
-              <>
-                <div className="spinner mr-2"></div>
-                Kaydediliyor...
-              </>
-            ) : (
-              <>
-                <Save className="w-4 h-4 mr-2" />
-                Kaydet
-              </>
-            )}
-          </button>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   )
 }

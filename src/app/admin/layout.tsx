@@ -13,7 +13,7 @@ export default async function AdminLayout({
           <div className="min-h-screen bg-slate-900 flex items-center justify-center">
             <div className="text-center">
               <h1 className="text-2xl font-bold text-slate-100 mb-4">Access Denied</h1>
-              <p className="text-slate-400">You don't have permission to access this page.</p>
+              <p className="text-slate-400">You don&apos;t have permission to access this page.</p>
               <a href="/login" className="mt-4 inline-block btn-primary">
                 Go to Login
               </a>
@@ -23,7 +23,7 @@ export default async function AdminLayout({
   }
   
   return (
-    <div className="min-h-screen bg-slate-900">
+    <div className="min-h-screen bg-background">
       <div className="flex">
         <AdminSidebar user={user} />
         <main className="flex-1 p-6">

@@ -6,22 +6,22 @@ export async function GET() {
   try {
     const siteUrl = baseSEO.siteUrl
 
-    // Get all published content
+    // Get all published content with slugs
     const [lawyers, announcements, events, publications] = await Promise.all([
       prisma.lawyer.findMany({
-        select: { id: true, updatedAt: true }
+        select: { id: true, slug: true, updatedAt: true }
       }),
       prisma.announcement.findMany({
         where: { published: true },
-        select: { id: true, updatedAt: true }
+        select: { id: true, slug: true, updatedAt: true }
       }),
       prisma.event.findMany({
         where: { published: true },
-        select: { id: true, updatedAt: true }
+        select: { id: true, slug: true, updatedAt: true }
       }),
       prisma.publication.findMany({
         where: { published: true },
-        select: { id: true, updatedAt: true }
+        select: { id: true, slug: true, updatedAt: true }
       })
     ])
 
@@ -38,79 +38,65 @@ export async function GET() {
   
   <!-- Static pages -->
   <url>
-    <loc>${siteUrl}/avukatlar</loc>
+    <loc>${siteUrl}/lawyers</loc>
     <lastmod>${new Date().toISOString()}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   
   <url>
-    <loc>${siteUrl}/duyurular</loc>
+    <loc>${siteUrl}/announcements</loc>
     <lastmod>${new Date().toISOString()}</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   
   <url>
-    <loc>${siteUrl}/etkinlikler</loc>
+    <loc>${siteUrl}/events</loc>
     <lastmod>${new Date().toISOString()}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   
   <url>
-    <loc>${siteUrl}/yayinlar</loc>
+    <loc>${siteUrl}/publications</loc>
     <lastmod>${new Date().toISOString()}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   
-  <url>
-    <loc>${siteUrl}/iletisim</loc>
-    <lastmod>${new Date().toISOString()}</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
-    <loc>${siteUrl}/kariyer</loc>
-    <lastmod>${new Date().toISOString()}</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-
-  <!-- Lawyers -->
-  ${lawyers.map(lawyer => `
-  <url>
-    <loc>${siteUrl}/avukatlar/${lawyer.id}</loc>
-    <lastmod>${lawyer.updatedAt.toISOString()}</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>`).join('')}
-
-  <!-- Announcements -->
   ${announcements.map(announcement => `
+  <!-- Announcement: ${announcement.slug} -->
   <url>
-    <loc>${siteUrl}/duyurular/${announcement.id}</loc>
+    <loc>${siteUrl}/announcement/${announcement.slug}</loc>
     <lastmod>${announcement.updatedAt.toISOString()}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>`).join('')}
-
-  <!-- Events -->
+  
   ${events.map(event => `
+  <!-- Event: ${event.slug} -->
   <url>
-    <loc>${siteUrl}/etkinlikler/${event.id}</loc>
+    <loc>${siteUrl}/event/${event.slug}</loc>
     <lastmod>${event.updatedAt.toISOString()}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>`).join('')}
-
-  <!-- Publications -->
+  
   ${publications.map(publication => `
+  <!-- Publication: ${publication.slug} -->
   <url>
-    <loc>${siteUrl}/yayinlar/${publication.id}</loc>
+    <loc>${siteUrl}/publication/${publication.slug}</loc>
     <lastmod>${publication.updatedAt.toISOString()}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>`).join('')}
+  
+  ${lawyers.map(lawyer => `
+  <!-- Lawyer: ${lawyer.slug} -->
+  <url>
+    <loc>${siteUrl}/lawyer/${lawyer.slug}</loc>
+    <lastmod>${lawyer.updatedAt.toISOString()}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>`).join('')}

@@ -6,6 +6,12 @@ import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Loader2 } from 'lucide-react'
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -58,77 +64,69 @@ export default function AdminLogin() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-900 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
-        <div className="card">
-          <div className="card-body">
-            <div>
-              <h2 className="mt-6 text-center text-3xl font-extrabold text-slate-100">
-                Admin Login
-              </h2>
-              <p className="mt-2 text-center text-sm text-slate-400">
-                Sign in to access the admin panel
-              </p>
-            </div>
-            <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl text-center">Admin Login</CardTitle>
+            <CardDescription className="text-center">
+              Sign in to access the admin panel
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
               <div className="space-y-4">
-                <div>
-                  <label htmlFor="email" className="form-label">
-                    Email address
-                  </label>
-                  <input
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email address</Label>
+                  <Input
                     {...register('email')}
                     type="email"
                     autoComplete="email"
-                    className="form-input"
                     placeholder="admin@tuncalaw.com"
+                    className="w-full"
                   />
                   {errors.email && (
-                    <p className="form-error">{errors.email.message}</p>
+                    <p className="text-sm text-destructive">{errors.email.message}</p>
                   )}
                 </div>
-                <div>
-                  <label htmlFor="password" className="form-label">
-                    Password
-                  </label>
-                  <input
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
                     {...register('password')}
                     type="password"
                     autoComplete="current-password"
-                    className="form-input"
                     placeholder="Enter your password"
+                    className="w-full"
                   />
                   {errors.password && (
-                    <p className="form-error">{errors.password.message}</p>
+                    <p className="text-sm text-destructive">{errors.password.message}</p>
                   )}
                 </div>
               </div>
 
               {error && (
-                <div className="text-red-400 text-sm text-center bg-red-900/20 border border-red-800 rounded-lg p-3">
-                  {error}
-                </div>
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
               )}
 
-              <div>
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="btn-primary w-full"
-                >
-                  {isLoading ? (
-                    <span className="flex items-center justify-center">
-                      <div className="spinner mr-2"></div>
-                      Signing in...
-                    </span>
-                  ) : (
-                    'Sign in'
-                  )}
-                </button>
-              </div>
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  'Sign in'
+                )}
+              </Button>
             </form>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

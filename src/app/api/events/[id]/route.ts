@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
+import { DEFAULT_LANGUAGE, generateSlug } from '@/lib/i18n'
+import { Language } from '@prisma/client'
 
 // GET /api/events/[id] - Get single event
 export async function GET(
@@ -8,8 +10,16 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    const { searchParams } = new URL(request.url)
+    const language = (searchParams.get('language') as Language) || DEFAULT_LANGUAGE
+
     const event = await prisma.event.findUnique({
-      where: { id: params.id }
+      where: { id: params.id },
+      include: {
+        translations: {
+          where: { language }
+        }
+      }
     })
 
     if (!event) {
@@ -19,7 +29,17 @@ export async function GET(
       )
     }
 
-    return NextResponse.json(event)
+    // Transform to include translation data at root level
+    const translation = event.translations[0]
+    const result = {
+      ...event,
+      title: translation?.title || '',
+      excerpt: translation?.excerpt || '',
+      content: translation?.content || '',
+      translations: undefined // Remove translations from response
+    }
+
+    return NextResponse.json(result)
   } catch (error) {
     console.error('Error fetching event:', error)
     return NextResponse.json(
@@ -51,25 +71,74 @@ export async function PUT(
       excerpt,
       content,
       image,
+      gallery,
       eventType,
       category,
       location,
-      published
+      published,
+      language = DEFAULT_LANGUAGE,
+      translations = []
     } = body
 
+    // Update or create translations
     const event = await prisma.event.update({
       where: { id: params.id },
       data: {
-        title,
         date,
         year,
-        excerpt,
-        content,
         image,
+        gallery: gallery || [],
         eventType,
         category,
         location,
-        published: published || false
+        published: published || false,
+        translations: {
+          upsert: [
+            // Main translation
+            {
+              where: {
+                eventId_language: {
+                  eventId: params.id,
+                  language
+                }
+              },
+              update: {
+                title,
+                excerpt,
+                content
+              },
+              create: {
+                language,
+                title,
+                excerpt,
+                content
+              }
+            },
+            // Additional translations
+            ...translations.map((translation: any) => ({
+              where: {
+                eventId_language: {
+                  eventId: params.id,
+                  language: translation.language
+                }
+              },
+              update: {
+                title: translation.title,
+                excerpt: translation.excerpt,
+                content: translation.content
+              },
+              create: {
+                language: translation.language,
+                title: translation.title,
+                excerpt: translation.excerpt,
+                content: translation.content
+              }
+            }))
+          ]
+        }
+      },
+      include: {
+        translations: true
       }
     })
 

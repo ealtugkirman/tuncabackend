@@ -1,23 +1,36 @@
-'use client'
+"use client"
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { ArrowLeft, Save } from 'lucide-react'
-import ImageUpload from '@/components/ImageUpload'
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { z } from "zod"
+import { ArrowLeft, Save, Calendar, Tag, ImageIcon, Globe, Eye, Moon } from "lucide-react"
+import ImageUpload from "@/components/ImageUpload"
+import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { AnnouncementMultilingualForm } from "@/components/admin/AnnouncementMultilingualForm"
+import { Language } from "@prisma/client"
 
 const announcementSchema = z.object({
-  title: z.string().min(1, 'Başlık gereklidir'),
-  date: z.string().min(1, 'Tarih gereklidir'),
-  year: z.string().min(1, 'Yıl gereklidir'),
-  excerpt: z.string().min(1, 'Özet gereklidir'),
-  content: z.string().min(1, 'İçerik gereklidir'),
+  date: z.string().min(1, "Tarih gereklidir"),
   image: z.string().optional(),
-  category: z.string().min(1, 'Kategori gereklidir'),
   isDark: z.boolean().default(false),
-  published: z.boolean().default(false)
+  published: z.boolean().default(false),
+  language: z.nativeEnum(Language).default(Language.TR),
+  translations: z
+    .array(
+      z.object({
+        language: z.nativeEnum(Language),
+        title: z.string().optional(),
+        excerpt: z.string().optional(),
+        content: z.string().optional(),
+      }),
+    )
+    .optional(),
 })
 
 type AnnouncementForm = z.infer<typeof announcementSchema>
@@ -25,232 +38,214 @@ type AnnouncementForm = z.infer<typeof announcementSchema>
 export default function NewAnnouncementPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useState("")
+  const [translations, setTranslations] = useState<
+    Array<{
+      language: Language
+      title?: string
+      excerpt?: string
+      content?: string
+    }>
+  >([])
 
   const {
     register,
     handleSubmit,
     formState: { errors },
     watch,
-    setValue
+    setValue,
   } = useForm<AnnouncementForm>({
     resolver: zodResolver(announcementSchema),
     defaultValues: {
       published: false,
-      isDark: false
-    }
+      isDark: false,
+      language: Language.TR,
+      translations: [],
+    },
   })
-
-  const published = watch('published')
-  const isDark = watch('isDark')
 
   const onSubmit = async (data: AnnouncementForm) => {
     setIsLoading(true)
-    setError('')
+    setError("")
 
     try {
-      const response = await fetch('/api/announcements', {
-        method: 'POST',
+      const response = await fetch("/api/announcements", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          translations: translations,
+        }),
       })
 
       if (!response.ok) {
-        throw new Error('Duyuru oluşturulamadı')
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Duyuru oluşturulamadı")
       }
 
-      const announcement = await response.json()
-      router.push('/admin/announcements')
+      await response.json()
+      router.push("/admin/announcements")
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Bir hata oluştu')
+      setError(err instanceof Error ? err.message : "Bir hata oluştu")
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center space-x-4">
-        <button
-          onClick={() => router.back()}
-          className="flex items-center text-gray-600 hover:text-gray-900"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Geri
-        </button>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Yeni Duyuru</h1>
-          <p className="text-gray-600">Yeni bir duyuru oluşturun</p>
+    <div className="min-h-screen bg-gray-950 text-white">
+      <div className="max-w-4xl mx-auto p-6 space-y-8">
+        {/* Header Section */}
+        <div className="flex items-center justify-between border-b border-gray-800 pb-6">
+          <div className="flex items-center space-x-4">
+            <Button
+              variant="ghost"
+              onClick={() => router.back()}
+              className="flex items-center text-gray-300 hover:text-white hover:bg-gray-800 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Geri
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold text-white">Yeni Duyuru</h1>
+              <p className="text-gray-400 mt-1">Yeni bir duyuru oluşturun ve yayınlayın</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2 text-sm text-gray-400">
+            <Moon className="w-4 h-4" />
+            <span>Dark Mode</span>
+          </div>
         </div>
-      </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <div className="bg-white shadow rounded-lg p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Başlık *
-              </label>
-              <input
-                {...register('title')}
-                type="text"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Duyuru başlığı"
-              />
-              {errors.title && (
-                <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
-              )}
-            </div>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+          {/* Multilingual Content Card */}
+          <Card className="bg-gray-900 border-gray-800">
+            <CardHeader className="border-b border-gray-800">
+              <div className="flex items-center space-x-2">
+                <Globe className="w-5 h-5 text-blue-400" />
+                <CardTitle className="text-white">Çoklu Dil İçeriği</CardTitle>
+              </div>
+              <CardDescription className="text-gray-400">Duyurunuzu farklı dillerde oluşturun</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <AnnouncementMultilingualForm translations={translations} onTranslationsChange={setTranslations} />
+            </CardContent>
+          </Card>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tarih *
-              </label>
-              <input
-                {...register('date')}
-                type="text"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="15 Aralık 2024"
-              />
-              {errors.date && (
-                <p className="mt-1 text-sm text-red-600">{errors.date.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Yıl *
-              </label>
-              <input
-                {...register('year')}
-                type="text"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="2024"
-              />
-              {errors.year && (
-                <p className="mt-1 text-sm text-red-600">{errors.year.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Kategori *
-              </label>
-              <select
-                {...register('category')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="">Seçiniz</option>
-                <option value="Birleşme ve Devralmalar">Birleşme ve Devralmalar</option>
-                <option value="Sermaye Piyasaları">Sermaye Piyasaları</option>
-                <option value="Kurumsal Hukuk">Kurumsal Hukuk</option>
-                <option value="İş Hukuku">İş Hukuku</option>
-                <option value="Ticaret Hukuku">Ticaret Hukuku</option>
-                <option value="Diğer">Diğer</option>
-              </select>
-              {errors.category && (
-                <p className="mt-1 text-sm text-red-600">{errors.category.message}</p>
-              )}
-            </div>
-
-            <div className="lg:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Duyuru Görseli
-              </label>
-              <ImageUpload
-                value={watch('image')}
-                onChange={(url) => setValue('image', url)}
-                folder="announcements"
-                className="w-full"
-              />
-            </div>
-
-            <div className="lg:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Özet *
-              </label>
-              <textarea
-                {...register('excerpt')}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Duyuru hakkında kısa açıklama"
-              />
-              {errors.excerpt && (
-                <p className="mt-1 text-sm text-red-600">{errors.excerpt.message}</p>
-              )}
-            </div>
-
-            <div className="lg:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                İçerik *
-              </label>
-              <textarea
-                {...register('content')}
-                rows={10}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Duyuru detayları (HTML formatında)"
-              />
-              {errors.content && (
-                <p className="mt-1 text-sm text-red-600">{errors.content.message}</p>
-              )}
-            </div>
-
-            <div className="lg:col-span-2">
-              <div className="space-y-4">
-                <div className="flex items-center">
+          {/* Announcement Details Card */}
+          <Card className="bg-gray-900 border-gray-800">
+            <CardHeader className="border-b border-gray-800">
+              <div className="flex items-center space-x-2">
+                <Tag className="w-5 h-5 text-green-400" />
+                <CardTitle className="text-white">Duyuru Bilgileri</CardTitle>
+              </div>
+              <CardDescription className="text-gray-400">
+                Duyurunun temel bilgilerini ve ayarlarını yapılandırın
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Date Field */}
+                <div className="space-y-2">
+                  <Label className="flex items-center space-x-2 text-sm font-medium text-gray-200">
+                    <Calendar className="w-4 h-4 text-blue-400" />
+                    <span>Tarih *</span>
+                  </Label>
                   <input
-                    {...register('published')}
-                    type="checkbox"
-                    id="published"
-                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                    {...register("date")}
+                    type="date"
+                    className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
-                  <label htmlFor="published" className="ml-2 block text-sm text-gray-900">
-                    Yayınla
-                  </label>
+                  {errors.date && (
+                    <p className="text-sm text-red-400 flex items-center space-x-1">
+                      <span>⚠</span>
+                      <span>{errors.date.message}</span>
+                    </p>
+                  )}
                 </div>
 
-                <div className="flex items-center">
-                  <input
-                    {...register('isDark')}
-                    type="checkbox"
-                    id="isDark"
-                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="isDark" className="ml-2 block text-sm text-gray-900">
-                    Koyu Tema (Dark Mode)
-                  </label>
+
+
+                {/* Image Upload */}
+                <div className="lg:col-span-2 space-y-2">
+                  <Label className="flex items-center space-x-2 text-sm font-medium text-gray-200">
+                    <ImageIcon className="w-4 h-4 text-orange-400" />
+                    <span>Duyuru Görseli</span>
+                  </Label>
+                  <div className="p-4 bg-gray-800 border border-gray-700 rounded-lg">
+                    <ImageUpload
+                      value={watch("image")}
+                      onChange={(url) => setValue("image", url)}
+                      folder="announcements"
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+
+                {/* Settings */}
+                <div className="lg:col-span-2 space-y-4 p-4 bg-gray-800 border border-gray-700 rounded-lg">
+                  <h3 className="text-sm font-medium text-gray-200 flex items-center space-x-2">
+                    <Eye className="w-4 h-4 text-cyan-400" />
+                    <span>Yayın Ayarları</span>
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex items-center space-x-3 p-3 bg-gray-900 rounded-lg border border-gray-700">
+                      <Checkbox
+                        {...register("published")}
+                        id="published"
+                        className="border-gray-600 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
+                      />
+                      <Label htmlFor="published" className="text-gray-200 cursor-pointer">
+                        Duyuruyu yayınla
+                      </Label>
+                    </div>
+
+                    <div className="flex items-center space-x-3 p-3 bg-gray-900 rounded-lg border border-gray-700">
+                      <Checkbox
+                        {...register("isDark")}
+                        id="isDark"
+                        className="border-gray-600 data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600"
+                      />
+                      <Label htmlFor="isDark" className="text-gray-200 cursor-pointer">
+                        Koyu tema kullan
+                      </Label>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
+            </CardContent>
+          </Card>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-md p-4">
-            <p className="text-sm text-red-600">{error}</p>
-          </div>
-        )}
+          {/* Error Alert */}
+          {error && (
+            <Alert variant="destructive" className="bg-red-950 border-red-800">
+              <AlertDescription className="text-red-200">{error}</AlertDescription>
+            </Alert>
+          )}
 
-        <div className="flex justify-end space-x-4">
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-          >
-            İptal
-          </button>
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 flex items-center space-x-2"
-          >
-            <Save className="w-4 h-4" />
-            <span>{isLoading ? 'Kaydediliyor...' : 'Kaydet'}</span>
-          </button>
-        </div>
-      </form>
+          {/* Action Buttons */}
+          <div className="flex justify-end space-x-4 pt-6 border-t border-gray-800">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.back()}
+              className="px-6 py-2 border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
+            >
+              İptal
+            </Button>
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Save className="w-4 h-4 mr-2" />
+              {isLoading ? "Kaydediliyor..." : "Duyuruyu Kaydet"}
+            </Button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }

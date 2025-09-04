@@ -13,6 +13,7 @@ interface Event {
   excerpt: string
   content: string
   image?: string
+  gallery?: string[]
   eventType: string
   category: string
   location?: string
@@ -151,6 +152,28 @@ export default function EventDetailPage({ params }: EventDetailPageProps) {
                 alt={event.title}
                 className="w-full h-64 object-cover rounded-lg"
               />
+            </div>
+          )}
+
+          {/* Event Gallery */}
+          {event.gallery && event.gallery.length > 0 && (
+            <div className="bg-white shadow rounded-lg p-6">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Etkinlik Galerisi</h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {event.gallery.map((image, index) => (
+                  <div key={index} className="relative group">
+                    <img
+                      src={image}
+                      alt={`Galeri ${index + 1}`}
+                      className="w-full h-32 object-cover rounded-lg border cursor-pointer hover:opacity-90 transition-opacity"
+                      onClick={() => window.open(image, '_blank')}
+                    />
+                  </div>
+                ))}
+              </div>
+              <p className="text-sm text-gray-500 mt-2">
+                {event.gallery.length} resim - Resimlere tıklayarak büyütebilirsiniz
+              </p>
             </div>
           )}
 

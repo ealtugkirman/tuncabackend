@@ -1,33 +1,64 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Edit, Trash2, Eye, EyeOff } from 'lucide-react'
+import { Plus, Edit, Trash2, Eye, EyeOff, Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 interface Announcement {
   id: string
   title: string
   date: string
   excerpt: string
-  category: string
   published: boolean
   createdAt: string
 }
 
+interface PaginationInfo {
+  page: number
+  limit: number
+  totalCount: number
+  totalPages: number
+  hasNextPage: boolean
+  hasPrevPage: boolean
+}
+
 export default function AdminAnnouncementsPage() {
-  const router = useRouter()
+  // const router = useRouter()
   const [announcements, setAnnouncements] = useState<Announcement[]>([])
+  const [pagination, setPagination] = useState<PaginationInfo | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
-  useEffect(() => {
+  // Filter states
+  const [search, setSearch] = useState('')
+  const [published, setPublished] = useState('all')
+  const [sortBy, setSortBy] = useState('createdAt')
+  const [sortOrder, setSortOrder] = useState('desc')
+  const [currentPage, setCurrentPage] = useState(1)
+
     const fetchAnnouncements = async () => {
-      try {
-        const response = await fetch('/api/announcements')
+    setIsLoading(true)
+    try {
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: '10',
+        sortBy,
+        sortOrder,
+        language: 'TR'
+      })
+
+      if (search) params.append('search', search)
+      if (published) params.append('published', published)
+
+      const response = await fetch(`/api/announcements?${params}`)
         if (response.ok) {
           const data = await response.json()
-          setAnnouncements(data)
+        setAnnouncements(data.data)
+        setPagination(data.pagination)
         }
       } catch (error) {
         console.error('Error fetching announcements:', error)
@@ -36,8 +67,40 @@ export default function AdminAnnouncementsPage() {
       }
     }
 
+  useEffect(() => {
     fetchAnnouncements()
-  }, [])
+  }, [currentPage, sortBy, sortOrder, search, published]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleSearch = (value: string) => {
+    setSearch(value)
+    setCurrentPage(1) // Reset to first page when searching
+  }
+
+  const handleFilterChange = (filterType: string, value: string) => {
+    // Convert "all" values to empty string for API
+    const apiValue = value === 'all' ? '' : value
+    
+    switch (filterType) {
+      case 'published':
+        setPublished(apiValue)
+        break
+      case 'sortBy':
+        setSortBy(value) // Don't convert sortBy
+        break
+      case 'sortOrder':
+        setSortOrder(value) // Don't convert sortOrder
+        break
+    }
+    setCurrentPage(1) // Reset to first page when filtering
+  }
+
+  const clearFilters = () => {
+    setSearch('')
+    setPublished('all')
+    setSortBy('createdAt')
+    setSortOrder('desc')
+    setCurrentPage(1)
+  }
 
   const handleDelete = async (id: string) => {
     if (!confirm('Bu duyuruyu silmek istediğinizden emin misiniz?')) {
@@ -51,7 +114,8 @@ export default function AdminAnnouncementsPage() {
       })
 
       if (response.ok) {
-        setAnnouncements(announcements.filter(announcement => announcement.id !== id))
+        // Refresh the list after deletion
+        fetchAnnouncements()
       } else {
         alert('Duyuru silinirken bir hata oluştu')
       }
@@ -90,10 +154,89 @@ export default function AdminAnnouncementsPage() {
         </Link>
       </div>
 
-      <div className="bg-white shadow rounded-lg">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Tüm Duyurular</h3>
+      {/* Search and Filters */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Filter className="w-5 h-5" />
+            Arama ve Filtreler
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Search */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Arama</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
+                  placeholder="Başlık, özet veya içerik..."
+                  value={search}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+
+
+
+            {/* Published Filter */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Durum</label>
+              <Select value={published} onValueChange={(value) => handleFilterChange('published', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Tüm durumlar" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tüm durumlar</SelectItem>
+                  <SelectItem value="true">Yayında</SelectItem>
+                  <SelectItem value="false">Taslak</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mt-4">
+            <div className="flex items-center gap-4">
+              {/* Sort By */}
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium">Sırala:</label>
+                <Select value={sortBy} onValueChange={(value) => handleFilterChange('sortBy', value)}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="createdAt">Oluşturma Tarihi</SelectItem>
+                    <SelectItem value="title">Başlık</SelectItem>
+                    <SelectItem value="date">Tarih</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Sort Order */}
+              <Select value={sortOrder} onValueChange={(value) => handleFilterChange('sortOrder', value)}>
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="desc">Azalan</SelectItem>
+                  <SelectItem value="asc">Artan</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Button variant="outline" onClick={clearFilters}>
+              Filtreleri Temizle
+            </Button>
         </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Tüm Duyurular</CardTitle>
+        </CardHeader>
+        <CardContent>
         <div className="divide-y divide-gray-200">
           {announcements.length === 0 ? (
             <div className="px-6 py-8 text-center text-gray-500">
@@ -120,7 +263,6 @@ export default function AdminAnnouncementsPage() {
                   <p className="text-sm text-gray-600 mt-1">{announcement.excerpt}</p>
                   <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
                     <span>Tarih: {announcement.date}</span>
-                    <span>Kategori: {announcement.category}</span>
                     <span>Oluşturulma: {new Date(announcement.createdAt).toLocaleDateString('tr-TR')}</span>
                   </div>
                 </div>
@@ -152,7 +294,56 @@ export default function AdminAnnouncementsPage() {
             ))
           )}
         </div>
+
+        {/* Pagination */}
+        {pagination && pagination.totalPages > 1 && (
+          <div className="flex items-center justify-between mt-6 pt-4 border-t">
+            <div className="text-sm text-gray-700">
+              Toplam {pagination.totalCount} duyuru, sayfa {pagination.page} / {pagination.totalPages}
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(currentPage - 1)}
+                disabled={!pagination.hasPrevPage}
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Önceki
+              </Button>
+              
+              {/* Page numbers */}
+              {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                const pageNum = Math.max(1, Math.min(pagination.totalPages - 4, currentPage - 2)) + i
+                if (pageNum > pagination.totalPages) return null
+                
+                return (
+                  <Button
+                    key={pageNum}
+                    variant={pageNum === currentPage ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCurrentPage(pageNum)}
+                    className="w-8 h-8 p-0"
+                  >
+                    {pageNum}
+                  </Button>
+                )
+              })}
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(currentPage + 1)}
+                disabled={!pagination.hasNextPage}
+              >
+                Sonraki
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+        </div>
       </div>
+        )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

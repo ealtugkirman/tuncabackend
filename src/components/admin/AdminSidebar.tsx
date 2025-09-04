@@ -15,9 +15,12 @@ import {
   LogOut,
   User,
   Upload,
-  Search
+  Search,
+  FileText
 } from 'lucide-react'
-import { clsx } from 'clsx'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Separator } from '@/components/ui/separator'
 
 interface AdminSidebarProps {
   user: {
@@ -41,6 +44,7 @@ export default function AdminSidebar({ user }: AdminSidebarProps) {
     { name: 'Bülten', href: '/admin/newsletter', icon: Newspaper },
     { name: 'Upload Test', href: '/admin/test-upload', icon: Upload },
     { name: 'SEO Test', href: '/admin/seo-test', icon: Search },
+    { name: 'Rich Text Test', href: '/admin/rich-text-test', icon: FileText },
   ]
 
   const handleSignOut = () => {
@@ -48,16 +52,16 @@ export default function AdminSidebar({ user }: AdminSidebarProps) {
   }
 
   return (
-    <div className="w-64 bg-slate-800 border-r border-slate-700 shadow-lg">
+    <div className="w-64 bg-card border-r border-border shadow-lg">
       <div className="p-6">
-        <h2 className="text-xl font-bold text-slate-100">Admin Panel</h2>
+        <h2 className="text-xl font-bold text-foreground">Admin Panel</h2>
         <div className="mt-4 flex items-center space-x-3">
-          <div className="w-8 h-8 bg-slate-600 rounded-full flex items-center justify-center">
-            <User className="w-5 h-5 text-slate-300" />
+          <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+            <User className="w-5 h-5 text-primary-foreground" />
           </div>
           <div>
-            <p className="text-sm font-medium text-slate-100">{user.name}</p>
-            <p className="text-xs text-slate-400">{user.role}</p>
+            <p className="text-sm font-medium text-foreground">{user.name}</p>
+            <p className="text-xs text-muted-foreground">{user.role}</p>
           </div>
         </div>
       </div>
@@ -70,17 +74,17 @@ export default function AdminSidebar({ user }: AdminSidebarProps) {
               <Link
                 key={item.name}
                 href={item.href}
-                className={clsx(
+                className={cn(
                   'group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
                   isActive
-                    ? 'bg-blue-600 text-white'
-                    : 'text-slate-300 hover:bg-slate-700 hover:text-slate-100'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                 )}
               >
                 <item.icon
-                  className={clsx(
+                  className={cn(
                     'mr-3 h-5 w-5 flex-shrink-0',
-                    isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'
+                    isActive ? 'text-primary-foreground' : 'text-muted-foreground group-hover:text-accent-foreground'
                   )}
                 />
                 {item.name}
@@ -91,13 +95,14 @@ export default function AdminSidebar({ user }: AdminSidebarProps) {
       </nav>
 
       <div className="absolute bottom-0 w-64 p-4">
-        <button
+        <Button
+          variant="ghost"
           onClick={handleSignOut}
-          className="w-full flex items-center px-3 py-2 text-sm font-medium text-slate-300 hover:bg-slate-700 hover:text-slate-100 rounded-md transition-colors"
+          className="w-full justify-start"
         >
-          <LogOut className="mr-3 h-5 w-5 text-slate-400" />
+          <LogOut className="mr-3 h-5 w-5" />
           Sign out
-        </button>
+        </Button>
       </div>
     </div>
   )

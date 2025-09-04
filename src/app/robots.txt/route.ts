@@ -16,12 +16,14 @@ Disallow: /_next/
 Disallow: /test-upload/
 
 # Allow important pages
-Allow: /avukatlar/
-Allow: /duyurular/
-Allow: /etkinlikler/
-Allow: /yayinlar/
-Allow: /iletisim
-Allow: /kariyer
+Allow: /lawyers/
+Allow: /announcements/
+Allow: /events/
+Allow: /publications/
+Allow: /announcement/
+Allow: /event/
+Allow: /lawyer/
+Allow: /publication/
 
 # Crawl delay (optional)
 Crawl-delay: 1`

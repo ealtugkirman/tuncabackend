@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
+import { DEFAULT_LANGUAGE, generateSlug } from '@/lib/i18n'
+import { Language } from '@prisma/client'
 
 // GET /api/publications/[id] - Get single publication
 export async function GET(
@@ -8,9 +10,15 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    const { searchParams } = new URL(request.url)
+    const language = (searchParams.get('language') as Language) || DEFAULT_LANGUAGE
+
     const publication = await prisma.publication.findUnique({
       where: { id: params.id },
       include: {
+        translations: {
+          where: { language }
+        },
         lawyer: {
           select: {
             id: true,
@@ -29,7 +37,17 @@ export async function GET(
       )
     }
 
-    return NextResponse.json(publication)
+    // Transform to include translation data at root level
+    const translation = publication.translations[0]
+    const result = {
+      ...publication,
+      title: translation?.title || '',
+      excerpt: translation?.excerpt || '',
+      content: translation?.content || '',
+      translations: undefined // Remove translations from response
+    }
+
+    return NextResponse.json(result)
   } catch (error) {
     console.error('Error fetching publication:', error)
     return NextResponse.json(
@@ -65,23 +83,70 @@ export async function PUT(
       author,
       tags,
       published,
-      lawyerId
+      lawyerId,
+      language = DEFAULT_LANGUAGE,
+      translations = []
     } = body
 
+    // Update or create translations
     const publication = await prisma.publication.update({
       where: { id: params.id },
       data: {
-        title,
         date,
         year,
-        excerpt,
-        content,
         practiceArea,
         category,
         author,
         tags: tags || [],
         published: published || false,
-        lawyerId
+        lawyerId,
+        translations: {
+          upsert: [
+            // Main translation
+            {
+              where: {
+                publicationId_language: {
+                  publicationId: params.id,
+                  language
+                }
+              },
+              update: {
+                title,
+                excerpt,
+                content
+              },
+              create: {
+                language,
+                title,
+                excerpt,
+                content
+              }
+            },
+            // Additional translations
+            ...translations.map((translation: any) => ({
+              where: {
+                publicationId_language: {
+                  publicationId: params.id,
+                  language: translation.language
+                }
+              },
+              update: {
+                title: translation.title,
+                excerpt: translation.excerpt,
+                content: translation.content
+              },
+              create: {
+                language: translation.language,
+                title: translation.title,
+                excerpt: translation.excerpt,
+                content: translation.content
+              }
+            }))
+          ]
+        }
+      },
+      include: {
+        translations: true
       }
     })
 

@@ -1,4 +1,5 @@
 import { prisma } from './prisma'
+import { Language, DEFAULT_LANGUAGE } from './i18n'
 
 export interface SEOData {
   title: string
@@ -25,20 +26,35 @@ export interface PageSEOData extends SEOData {
 
 // Base SEO configuration
 export const baseSEO = {
-  siteName: 'Tunca Avukatlık',
+  siteName: {
+    TR: 'Tunca Avukatlık',
+    EN: 'Tunca Law Firm'
+  },
   siteUrl: process.env.NEXT_PUBLIC_SITE_URL || 'https://tuncalaw.com',
   defaultImage: '/images/tunca-law-og-image.jpg',
   twitterHandle: '@tuncalaw',
-  defaultKeywords: [
-    'avukat',
-    'hukuk bürosu',
-    'ankara avukat',
-    'kurumsal hukuk',
-    'birleşme devralma',
-    'iş hukuku',
-    'ticaret hukuku',
-    'sermaye piyasaları'
-  ]
+  defaultKeywords: {
+    TR: [
+      'avukat',
+      'hukuk bürosu',
+      'ankara avukat',
+      'kurumsal hukuk',
+      'birleşme devralma',
+      'iş hukuku',
+      'ticaret hukuku',
+      'sermaye piyasaları'
+    ],
+    EN: [
+      'lawyer',
+      'law firm',
+      'ankara lawyer',
+      'corporate law',
+      'mergers acquisitions',
+      'labor law',
+      'commercial law',
+      'capital markets'
+    ]
+  }
 }
 
 // Generate SEO data for homepage

@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { ArrowLeft, Save, Eye, EyeOff } from 'lucide-react'
+import ImageUpload from '@/components/ImageUpload'
 
 const eventSchema = z.object({
   title: z.string().min(1, 'Başlık gereklidir'),
@@ -14,6 +15,7 @@ const eventSchema = z.object({
   excerpt: z.string().min(1, 'Özet gereklidir'),
   content: z.string().min(1, 'İçerik gereklidir'),
   image: z.string().optional(),
+  gallery: z.array(z.string()).optional(),
   eventType: z.string().min(1, 'Etkinlik türü gereklidir'),
   category: z.string().min(1, 'Kategori gereklidir'),
   location: z.string().optional(),
@@ -33,6 +35,7 @@ export default function EditEventPage({ params }: EditEventPageProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingData, setIsLoadingData] = useState(true)
   const [error, setError] = useState('')
+  const [galleryImages, setGalleryImages] = useState<string[]>([])
 
   const {
     register,
@@ -56,6 +59,7 @@ export default function EditEventPage({ params }: EditEventPageProps) {
         }
         const event = await response.json()
         reset(event)
+        setGalleryImages(event.gallery || [])
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Bir hata oluştu')
       } finally {
@@ -76,7 +80,10 @@ export default function EditEventPage({ params }: EditEventPageProps) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          gallery: galleryImages
+        }),
       })
 
       if (!response.ok) {
@@ -220,14 +227,56 @@ export default function EditEventPage({ params }: EditEventPageProps) {
 
             <div className="lg:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Görsel URL
+                Etkinlik Görseli
               </label>
-              <input
-                {...register('image')}
-                type="url"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="https://example.com/image.jpg"
+              <ImageUpload
+                value={watch('image')}
+                onChange={(url) => setValue('image', url)}
+                folder="events"
+                className="w-full"
               />
+            </div>
+
+            <div className="lg:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Etkinlik Galerisi (Opsiyonel)
+              </label>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {galleryImages.map((image, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={image}
+                        alt={`Galeri ${index + 1}`}
+                        className="w-full h-24 object-cover rounded-lg border"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setGalleryImages(galleryImages.filter((_, i) => i !== index))}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <ImageUpload
+                  value=""
+                  onChange={(url) => {
+                    if (url && !galleryImages.includes(url)) {
+                      setGalleryImages([...galleryImages, url])
+                    }
+                  }}
+                  folder="events/gallery"
+                  className="w-full"
+                  placeholder="Galeri için resim ekle"
+                />
+                {galleryImages.length > 0 && (
+                  <p className="text-sm text-gray-500">
+                    {galleryImages.length} resim eklendi
+                  </p>
+                )}
+              </div>
             </div>
 
             <div className="lg:col-span-2">
