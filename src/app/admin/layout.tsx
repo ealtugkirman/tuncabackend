@@ -1,5 +1,6 @@
 import { getCurrentUser } from '@/lib/auth-utils'
 import AdminSidebar from '@/components/admin/AdminSidebar'
+import { SimpleLanguageSwitcher } from '@/components/SimpleLanguageSwitcher'
 
 export default async function AdminLayout({
   children,
@@ -27,6 +28,10 @@ export default async function AdminLayout({
       <div className="flex">
         <AdminSidebar user={user} />
         <main className="flex-1 p-6">
+          {/* Language Switcher */}
+          <div className="mb-4 flex justify-end">
+            <SimpleLanguageSwitcher />
+          </div>
           {children}
         </main>
       </div>

@@ -74,27 +74,35 @@ export function PublicationMultilingualForm({
   }
 
   const updateTranslation = (language: Language, field: keyof Omit<PublicationTranslation, 'language'>, value: string) => {
-    const updatedTranslations = translations.map(t => 
-      t.language === language 
-        ? { ...t, [field]: value }
-        : t
-    )
-
-    // If translation doesn't exist, add it
-    if (!translations.find(t => t.language === language)) {
-      updatedTranslations.push({
+    console.log(`🔄 Çeviri güncelleniyor: ${language} - ${field} = "${value}"`)
+    
+    const existingTranslation = translations.find(t => t.language === language)
+    
+    if (existingTranslation) {
+      // Update existing translation
+      const updatedTranslations = translations.map(t => 
+        t.language === language 
+          ? { ...t, [field]: value }
+          : t
+      )
+      console.log("✅ Mevcut çeviri güncellendi:", updatedTranslations.find(t => t.language === language))
+      onTranslationsChange(updatedTranslations)
+    } else {
+      // Create new translation
+      const newTranslation: PublicationTranslation = {
         language,
-        [field]: value,
-        title: '',
-        excerpt: '',
-        content: ''
-      })
+        title: field === 'title' ? value : '',
+        excerpt: field === 'excerpt' ? value : '',
+        content: field === 'content' ? value : ''
+      }
+      const updatedTranslations = [...translations, newTranslation]
+      console.log("➕ Yeni çeviri eklendi:", newTranslation)
+      onTranslationsChange(updatedTranslations)
     }
-
-    onTranslationsChange(updatedTranslations)
   }
 
   const addTranslation = (language: Language) => {
+    console.log(`➕ Çeviri ekleniyor: ${language}`)
     const exists = translations.find(t => t.language === language)
     if (!exists) {
       const newTranslation: PublicationTranslation = {
@@ -103,7 +111,10 @@ export function PublicationMultilingualForm({
         excerpt: '',
         content: ''
       }
+      console.log("✅ Yeni çeviri eklendi:", newTranslation)
       onTranslationsChange([...translations, newTranslation])
+    } else {
+      console.log("⚠️ Çeviri zaten mevcut:", language)
     }
   }
 
@@ -182,7 +193,10 @@ export function PublicationMultilingualForm({
                     <Input
                       id={`title-${language}`}
                       value={translation.title || ''}
-                      onChange={(e) => updateTranslation(language, 'title', e.target.value)}
+                      onChange={(e) => {
+                        console.log(`📝 Title onChange: ${language} - value: "${e.target.value}"`)
+                        updateTranslation(language, 'title', e.target.value)
+                      }}
                       placeholder={language === Language.TR ? 'Yayın başlığını girin...' : 'Enter publication title...'}
                       className="w-full"
                     />
@@ -196,7 +210,10 @@ export function PublicationMultilingualForm({
                     <Textarea
                       id={`excerpt-${language}`}
                       value={translation.excerpt || ''}
-                      onChange={(e) => updateTranslation(language, 'excerpt', e.target.value)}
+                      onChange={(e) => {
+                        console.log(`📝 Excerpt onChange: ${language} - value: "${e.target.value}"`)
+                        updateTranslation(language, 'excerpt', e.target.value)
+                      }}
                       placeholder={language === Language.TR ? 'Kısa açıklama girin...' : 'Enter short description...'}
                       rows={3}
                       className="w-full"
@@ -210,7 +227,10 @@ export function PublicationMultilingualForm({
                     </Label>
                     <RichTextEditor
                       content={translation.content || ''}
-                      onChange={(content) => updateTranslation(language, 'content', content)}
+                      onChange={(content) => {
+                        console.log(`📝 RichTextEditor onChange: ${language} - content length: ${content.length}`)
+                        updateTranslation(language, 'content', content)
+                      }}
                       placeholder={language === Language.TR ? 'Yayın içeriğini yazın...' : 'Write publication content...'}
                     />
                   </div>

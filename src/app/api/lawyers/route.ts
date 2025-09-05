@@ -14,11 +14,12 @@ export async function GET(request: NextRequest) {
     
     // Pagination parameters
     const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '10')
+    const limitParam = searchParams.get('limit')
+    const limit = limitParam ? parseInt(limitParam) : 1000 // Default to 1000 if no limit specified
     const skip = (page - 1) * limit
     
     // Sorting parameters
-    const sortBy = searchParams.get('sortBy') || 'createdAt'
+    const sortBy = searchParams.get('sortBy') || 'order'
     const sortOrder = searchParams.get('sortOrder') || 'asc'
     
     // Search parameter
@@ -82,9 +83,7 @@ export async function GET(request: NextRequest) {
       prisma.lawyer.findMany({
         where: whereClause,
         include: {
-          translations: {
-            where: { language }
-          }
+          translations: true
         },
         orderBy: search ? [{ createdAt: sortOrder }] : [orderBy],
         skip,

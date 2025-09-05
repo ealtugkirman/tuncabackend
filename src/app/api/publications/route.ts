@@ -132,9 +132,16 @@ export async function GET(request: NextRequest) {
 
 // POST /api/publications - Create new publication (admin only)
 export async function POST(request: NextRequest) {
+  console.log("🚀 API: Yayın oluşturma isteği alındı")
+  
   try {
     const user = await getCurrentUser()
+    console.log("👤 Kullanıcı kontrolü:", { 
+      user: user ? { id: user.id, email: user.email, role: user.role } : null 
+    })
+    
     if (!user || (user.role !== 'ADMIN' && user.role !== 'SUPERADMIN')) {
+      console.log("❌ Yetkisiz erişim")
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -142,39 +149,71 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
+    console.log("📥 Gelen veri:", body)
+    
     const {
       date,
       year,
       category,
+      tags,
       published,
+      lawyerId,
       lawyerIds = [],
       language = DEFAULT_LANGUAGE,
       translations = []
     } = body
 
+    console.log("🔍 Ayrıştırılan veriler:", {
+      date,
+      year,
+      category,
+      tags,
+      published,
+      lawyerId,
+      lawyerIds,
+      language,
+      translationsCount: translations.length
+    })
+
+    // Convert tags string to array
+    const tagsArray = tags ? tags.split(',').map(tag => tag.trim()).filter(tag => tag) : []
+    console.log("🏷️ Etiketler:", tagsArray)
+
+    // Convert single lawyerId to array if provided
+    const finalLawyerIds = lawyerId ? [lawyerId] : lawyerIds
+    console.log("👥 Avukat ID'leri:", finalLawyerIds)
+
     // Generate slug from first translation or fallback
     const firstTranslation = translations[0]
     const slug = firstTranslation ? generateUniqueSlug(firstTranslation.title, firstTranslation.language) : generateUniqueSlug('publication', language)
+    console.log("🔗 Oluşturulan slug:", slug)
+
+    console.log("💾 Database'e kayıt başlatılıyor...")
+    
+    const publicationData = {
+      slug,
+      date: new Date(date),
+      year: parseInt(year),
+      category,
+      tags: tagsArray,
+      published: published || false,
+      lawyers: {
+        connect: finalLawyerIds.filter(Boolean).map((id: string) => ({ id }))
+      },
+      translations: {
+        create: translations.map((translation: any) => ({
+          language: translation.language,
+          title: translation.title,
+          excerpt: translation.excerpt,
+          content: translation.content
+        }))
+      }
+    }
+    
+    console.log("📊 Database'e gönderilecek veri:", publicationData)
 
     const publication = await prisma.publication.create({
-      data: {
-        slug,
-        date: new Date(date),
-        year: parseInt(year),
-        category,
-        published: published || false,
-        lawyers: {
-          connect: (Array.isArray(lawyerIds) ? lawyerIds : []).filter(Boolean).map((id: string) => ({ id }))
-        },
-        translations: {
-          create: translations.map((translation: any) => ({
-            language: translation.language,
-            title: translation.title,
-            excerpt: translation.excerpt,
-            content: translation.content
-          }))
-        }
-      },
+      data: publicationData,
       include: {
         translations: true,
         lawyers: {
@@ -189,11 +228,24 @@ export async function POST(request: NextRequest) {
       }
     })
 
+    console.log("✅ Yayın başarıyla oluşturuldu:", {
+      id: publication.id,
+      slug: publication.slug,
+      title: publication.translations[0]?.title,
+      translationsCount: publication.translations.length,
+      lawyersCount: publication.lawyers.length
+    })
+
     return NextResponse.json(publication, { status: 201 })
   } catch (error) {
-    console.error('Error creating publication:', error)
+    console.error('💥 Yayın oluşturma hatası:', error)
+    console.error('📋 Hata detayları:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    })
     return NextResponse.json(
-      { error: 'Failed to create publication' },
+      { error: 'Failed to create publication', details: error.message },
       { status: 500 }
     )
   }

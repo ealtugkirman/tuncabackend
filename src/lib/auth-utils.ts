@@ -12,8 +12,13 @@ type SessionUser = {
 }
 
 export async function getCurrentUser() {
-  const session = await getServerSession(authOptions) as { user?: SessionUser } | null
-  return session?.user
+  try {
+    const session = await getServerSession(authOptions) as { user?: SessionUser } | null
+    return session?.user
+  } catch (error) {
+    console.error('❌ Error getting current user:', error)
+    return null
+  }
 }
 
 export async function requireAuth() {

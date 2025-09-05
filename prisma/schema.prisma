@@ -80,6 +80,8 @@ model Lawyer {
   isPartner     Boolean  @default(false)
   isFounder     Boolean  @default(false)
   isIntern      Boolean  @default(false)
+  isLawyer      Boolean  @default(true)
+  order         Int      @default(0) // Sıralama için order field
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -119,6 +121,7 @@ model Announcement {
   id            String   @id @default(cuid())
   slug          String   @unique // URL-friendly identifier
   date          DateTime
+  year          Int
   image         String?
   imagePublicId String?
   isDark        Boolean  @default(false)
@@ -195,6 +198,8 @@ model Publication {
   slug        String   @unique // URL-friendly identifier
   date        DateTime
   year        Int
+  category    String
+  tags        String[]
   published   Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

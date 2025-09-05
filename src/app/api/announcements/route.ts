@@ -11,6 +11,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search')
     const published = searchParams.get('published')
     const language = (searchParams.get('language') as Language) || DEFAULT_LANGUAGE
+    const yearParam = searchParams.get('year')
     
     // Pagination parameters
     const page = parseInt(searchParams.get('page') || '1')
@@ -29,6 +30,14 @@ export async function GET(request: NextRequest) {
 
     if (published && published !== 'all') {
       whereClause.published = published === 'true'
+    }
+
+    // Year filtering
+    if (yearParam) {
+      const parsedYear = parseInt(yearParam)
+      if (!Number.isNaN(parsedYear)) {
+        whereClause.year = parsedYear
+      }
     }
 
     // Date range filtering
@@ -69,7 +78,7 @@ export async function GET(request: NextRequest) {
           where: { language }
         }
       },
-      orderBy: { [sortBy]: sortOrder },
+      orderBy: sortBy === 'date' ? { date: sortOrder } : { createdAt: sortOrder },
       skip,
       take: limit
     })
@@ -104,8 +113,13 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error('Error fetching announcements:', error)
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      whereClause
+    })
     return NextResponse.json(
-      { error: 'Failed to fetch announcements' },
+      { error: 'Failed to fetch announcements', details: error.message },
       { status: 500 }
     )
   }
@@ -139,6 +153,7 @@ export async function POST(request: NextRequest) {
       data: {
         slug,
         date: new Date(date),
+        year: new Date(date).getFullYear(),
         image,
         isDark: isDark || false,
         published: published || false,

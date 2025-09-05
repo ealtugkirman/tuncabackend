@@ -25,12 +25,12 @@ const announcementSchema = z.object({
     .array(
       z.object({
         language: z.nativeEnum(Language),
-        title: z.string().optional(),
-        excerpt: z.string().optional(),
-        content: z.string().optional(),
+        title: z.string().min(1, "Başlık gereklidir"),
+        excerpt: z.string().min(1, "Özet gereklidir"),
+        content: z.string().min(1, "İçerik gereklidir"),
       }),
     )
-    .optional(),
+    .min(1, "En az bir dil için çeviri gereklidir"),
 })
 
 type AnnouncementForm = z.infer<typeof announcementSchema>
@@ -67,6 +67,29 @@ export default function NewAnnouncementPage() {
   const onSubmit = async (data: AnnouncementForm) => {
     setIsLoading(true)
     setError("")
+
+    console.log("Form data:", data)
+    console.log("Translations:", translations)
+
+    // Check if translations are empty
+    if (!translations || translations.length === 0) {
+      setError("En az bir dil için çeviri eklemelisiniz")
+      setIsLoading(false)
+      return
+    }
+
+    // Check if all required fields are filled
+    const hasValidTranslations = translations.every(t => 
+      t.title && t.title.trim() && 
+      t.excerpt && t.excerpt.trim() && 
+      t.content && t.content.trim()
+    )
+
+    if (!hasValidTranslations) {
+      setError("Tüm çeviriler için başlık, özet ve içerik alanları doldurulmalıdır")
+      setIsLoading(false)
+      return
+    }
 
     try {
       const response = await fetch("/api/announcements", {

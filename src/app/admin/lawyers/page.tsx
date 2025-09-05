@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Plus, Edit, Trash2, User, Award, GraduationCap, Eye, Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, Edit, Trash2, User, Award, GraduationCap, Eye, Search, Filter, ChevronLeft, ChevronRight, ArrowUpDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -15,6 +15,8 @@ interface Lawyer {
   phone?: string
   isFounder: boolean
   isPartner: boolean
+  isIntern: boolean
+  order: number
   createdAt: string
   name: string
   title: string
@@ -40,7 +42,7 @@ export default function AdminLawyersPage() {
   const [search, setSearch] = useState('')
   const [isFounder, setIsFounder] = useState('all')
   const [isPartner, setIsPartner] = useState('all')
-  const [sortBy, setSortBy] = useState('createdAt')
+  const [sortBy, setSortBy] = useState('order')
   const [sortOrder, setSortOrder] = useState('asc')
   const [currentPage, setCurrentPage] = useState(1)
 
@@ -153,12 +155,20 @@ export default function AdminLawyersPage() {
           <h1 className="text-2xl font-bold text-foreground">Avukatlar</h1>
           <p className="text-muted-foreground">Ekip üyelerini yönetin</p>
         </div>
-        <Button asChild>
-          <Link href="/admin/lawyers/new">
-            <Plus className="w-4 h-4 mr-2" />
-            Yeni Avukat
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button asChild variant="outline">
+            <Link href="/admin/lawyers/order">
+              <ArrowUpDown className="w-4 h-4 mr-2" />
+              Sırala
+            </Link>
+          </Button>
+          <Button asChild>
+            <Link href="/admin/lawyers/new">
+              <Plus className="w-4 h-4 mr-2" />
+              Yeni Avukat
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}

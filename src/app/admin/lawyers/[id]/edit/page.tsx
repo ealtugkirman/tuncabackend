@@ -1,363 +1,545 @@
-'use client'
+"use client"
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { ArrowLeft, Save } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { useRouter, useParams } from 'next/navigation'
+import Link from 'next/link'
+import { ArrowLeft, Save, Upload, User, Mail, Phone, MapPin, Crown, Star, GraduationCap } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import ImageUpload from '@/components/ImageUpload'
+import { useLanguage } from '@/contexts/LanguageContext'
 
-const lawyerSchema = z.object({
-  name: z.string().min(1, 'Ad soyad gereklidir'),
-  title: z.string().min(1, 'Ünvan gereklidir'),
-  education: z.string().optional(),
-  bar: z.string().min(1, 'Baro bilgisi gereklidir'),
-  languages: z.string().optional(),
-  practiceAreas: z.string().optional(),
-  image: z.string().optional(),
-  isPartner: z.boolean().default(false),
-  isFounder: z.boolean().default(false),
-  isIntern: z.boolean().default(false),
-  hasPhD: z.boolean().default(false),
-  certifications: z.string().optional(),
-  bio: z.string().optional()
-})
-
-type LawyerForm = z.infer<typeof lawyerSchema>
-
-interface EditLawyerPageProps {
-  params: {
-    id: string
-  }
+interface LawyerTranslation {
+  language: string
+  name: string
+  title: string
+  bio: string
 }
 
-export default function EditLawyerPage({ params }: EditLawyerPageProps) {
+interface Lawyer {
+  id: string
+  name: string
+  title: string
+  bio: string
+  email: string
+  phone: string
+  address: string
+  image?: string
+  isPartner: boolean
+  isFounder: boolean
+  isIntern: boolean
+  order: number
+  translations: LawyerTranslation[]
+}
+
+export default function EditLawyerPage() {
   const router = useRouter()
-  const [isLoading, setIsLoading] = useState(false)
-  const [isLoadingData, setIsLoadingData] = useState(true)
+  const params = useParams()
+  const { locale } = useLanguage()
+  const lawyerId = params.id as string
+
+  const [lawyer, setLawyer] = useState<Lawyer | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    watch,
-    setValue,
-    reset
-  } = useForm<LawyerForm>({
-    resolver: zodResolver(lawyerSchema)
-  })
+  // Form states
+  const [name, setName] = useState('')
+  const [title, setTitle] = useState('')
+  const [bio, setBio] = useState('')
+  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
+  const [address, setAddress] = useState('')
+  const [image, setImage] = useState('')
+  const [isPartner, setIsPartner] = useState(false)
+  const [isFounder, setIsFounder] = useState(false)
+  const [isIntern, setIsIntern] = useState(false)
+  const [isLawyer, setIsLawyer] = useState(false)
 
-  const isPartner = watch('isPartner')
-  const isFounder = watch('isFounder')
-  const isIntern = watch('isIntern')
-  const hasPhD = watch('hasPhD')
+  // Translation states
+  const [translations, setTranslations] = useState<LawyerTranslation[]>([
+    { language: 'TR', name: '', title: '', bio: '' },
+    { language: 'EN', name: '', title: '', bio: '' }
+  ])
+
+  const fetchLawyer = useCallback(async () => {
+    try {
+      setIsLoading(true)
+      setError('')
+      
+      console.log('🔄 Fetching lawyer:', lawyerId)
+      const response = await fetch(`/api/lawyers/${lawyerId}`)
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch lawyer')
+      }
+      
+      const data = await response.json()
+      console.log('📥 Lawyer fetched:', data)
+      
+      const lawyerData = data.data
+      setLawyer(lawyerData)
+      
+      // Set form values
+      setName(lawyerData.name || '')
+      setTitle(lawyerData.title || '')
+      setBio(lawyerData.bio || '')
+      setEmail(lawyerData.email || '')
+      setPhone(lawyerData.phone || '')
+      setAddress(lawyerData.address || '')
+      setImage(lawyerData.image || '')
+      setIsPartner(lawyerData.isPartner || false)
+      setIsFounder(lawyerData.isFounder || false)
+      setIsIntern(lawyerData.isIntern || false)
+      setIsLawyer(!lawyerData.isPartner && !lawyerData.isFounder && !lawyerData.isIntern)
+      
+      // Set translations
+      if (lawyerData.translations && lawyerData.translations.length > 0) {
+        setTranslations(lawyerData.translations)
+      }
+      
+    } catch (err) {
+      console.error('❌ Error fetching lawyer:', err)
+      setError(err instanceof Error ? err.message : 'An error occurred')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [lawyerId, locale])
 
   useEffect(() => {
-    const fetchLawyer = async () => {
-      try {
-        const response = await fetch(`/api/lawyers/${params.id}`)
-        if (!response.ok) {
-          throw new Error('Avukat bulunamadı')
-        }
-        const lawyer = await response.json()
-        
-        // Convert arrays back to comma-separated strings for form
-        const formData = {
-          ...lawyer,
-          education: lawyer.education ? lawyer.education.join(', ') : '',
-          languages: lawyer.languages ? lawyer.languages.join(', ') : '',
-          practiceAreas: lawyer.practiceAreas ? lawyer.practiceAreas.join(', ') : '',
-          certifications: lawyer.certifications ? lawyer.certifications.join(', ') : ''
-        }
-        reset(formData)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Bir hata oluştu')
-      } finally {
-        setIsLoadingData(false)
-      }
+    if (lawyerId) {
+      fetchLawyer()
     }
+  }, [lawyerId, fetchLawyer])
 
-    fetchLawyer()
-  }, [params.id, reset])
-
-  const onSubmit = async (data: LawyerForm) => {
-    setIsLoading(true)
-    setError('')
-
+  const handleSave = async () => {
     try {
-      // Convert comma-separated strings to arrays
-      const educationArray = data.education ? data.education.split(',').map(item => item.trim()).filter(item => item) : []
-      const languagesArray = data.languages ? data.languages.split(',').map(item => item.trim()).filter(item => item) : []
-      const practiceAreasArray = data.practiceAreas ? data.practiceAreas.split(',').map(item => item.trim()).filter(item => item) : []
-      const certificationsArray = data.certifications ? data.certifications.split(',').map(item => item.trim()).filter(item => item) : []
-
-      const response = await fetch(`/api/lawyers/${params.id}`, {
+      setIsSaving(true)
+      setError('')
+      setSuccess('')
+      
+      console.log('🔄 Saving lawyer...')
+      
+      const payload = {
+        name,
+        title,
+        bio,
+        email,
+        phone,
+        address,
+        image,
+        isPartner,
+        isFounder,
+        isIntern,
+        isLawyer,
+        translations
+      }
+      
+      console.log('📤 Sending payload:', payload)
+      
+      const response = await fetch(`/api/lawyers/${lawyerId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...data,
-          education: educationArray,
-          languages: languagesArray,
-          practiceAreas: practiceAreasArray,
-          certifications: certificationsArray
-        }),
+        body: JSON.stringify(payload)
       })
 
+      console.log('📥 Response status:', response.status)
+      
       if (!response.ok) {
-        throw new Error('Avukat güncellenemedi')
+        const errorData = await response.json()
+        console.error('❌ API Error:', errorData)
+        throw new Error(errorData.error || 'Failed to save lawyer')
       }
 
-      router.push('/admin/lawyers')
+      const result = await response.json()
+      console.log('✅ API Success:', result)
+      
+      setSuccess('Avukat başarıyla güncellendi!')
+      
+      // Redirect to lawyers list after a short delay
+      setTimeout(() => {
+        router.push('/admin/lawyers')
+      }, 2000)
+      
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Bir hata oluştu')
+      console.error('❌ handleSave error:', err)
+      setError(err instanceof Error ? err.message : 'Failed to save lawyer')
     } finally {
-      setIsLoading(false)
+      setIsSaving(false)
     }
   }
 
-  if (isLoadingData) {
+  const updateTranslation = (index: number, field: keyof LawyerTranslation, value: string) => {
+    const newTranslations = [...translations]
+    newTranslations[index] = {
+      ...newTranslations[index],
+      [field]: value
+    }
+    setTranslations(newTranslations)
+  }
+
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Yükleniyor...</p>
+          <div className="w-8 h-8 animate-spin rounded-full border-2 border-primary border-t-transparent mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Yükleniyor...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!lawyer) {
+    return (
+      <div className="min-h-screen bg-background p-6">
+        <div className="max-w-4xl mx-auto">
+          <Alert className="border-red-200 bg-red-50 text-red-800">
+            <AlertDescription>Avukat bulunamadı</AlertDescription>
+          </Alert>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center space-x-4">
-        <button
-          onClick={() => router.back()}
-          className="flex items-center text-gray-600 hover:text-gray-900"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Geri
-        </button>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Avukat Düzenle</h1>
-          <p className="text-gray-600">Avukat bilgilerini güncelleyin</p>
-        </div>
-      </div>
-
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <div className="bg-white shadow rounded-lg p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="min-h-screen bg-background p-6">
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.back()}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Geri
+            </Button>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Ad Soyad *
-              </label>
-              <input
-                {...register('name')}
-                type="text"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Dr. Mehmet Tunca"
-              />
-              {errors.name && (
-                <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Ünvan *
-              </label>
-              <input
-                {...register('title')}
-                type="text"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="ORTAK AVUKAT"
-              />
-              {errors.title && (
-                <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Baro *
-              </label>
-              <input
-                {...register('bar')}
-                type="text"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Ankara Barosu"
-              />
-              {errors.bar && (
-                <p className="mt-1 text-sm text-red-600">{errors.bar.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Görsel URL
-              </label>
-              <input
-                {...register('image')}
-                type="url"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="https://example.com/photo.jpg"
-              />
-            </div>
-
-            <div className="lg:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Eğitim
-              </label>
-              <textarea
-                {...register('education')}
-                rows={2}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Ankara Üniversitesi Hukuk Fakültesi, LL.M. Harvard Law School (virgülle ayırın)"
-              />
-              <p className="mt-1 text-sm text-gray-500">
-                Eğitim bilgilerini virgülle ayırarak girin
+              <h1 className="text-3xl font-bold text-foreground">
+                Avukat Düzenle
+              </h1>
+              <p className="text-muted-foreground">
+                {lawyer.name} - Bilgilerini düzenleyin
               </p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Diller
-              </label>
-              <input
-                {...register('languages')}
-                type="text"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="İngilizce, Almanca (virgülle ayırın)"
-              />
-              <p className="mt-1 text-sm text-gray-500">
-                Dilleri virgülle ayırarak girin
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Çalışma Alanları
-              </label>
-              <input
-                {...register('practiceAreas')}
-                type="text"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Kurumsal Hukuk, Birleşme ve Devralmalar (virgülle ayırın)"
-              />
-              <p className="mt-1 text-sm text-gray-500">
-                Çalışma alanlarını virgülle ayırarak girin
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Sertifikalar
-              </label>
-              <input
-                {...register('certifications')}
-                type="text"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="CFA, CPA (virgülle ayırın)"
-              />
-              <p className="mt-1 text-sm text-gray-500">
-                Sertifikaları virgülle ayırarak girin
-              </p>
-            </div>
-
-            <div className="lg:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Biyografi
-              </label>
-              <textarea
-                {...register('bio')}
-                rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Avukat hakkında kısa biyografi"
-              />
-            </div>
-
-            <div className="lg:col-span-2">
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium text-gray-900">Özellikler</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex items-center">
-                    <input
-                      {...register('isPartner')}
-                      type="checkbox"
-                      id="isPartner"
-                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                    />
-                    <label htmlFor="isPartner" className="ml-2 block text-sm text-gray-900">
-                      Ortak
-                    </label>
-                  </div>
-
-                  <div className="flex items-center">
-                    <input
-                      {...register('isFounder')}
-                      type="checkbox"
-                      id="isFounder"
-                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                    />
-                    <label htmlFor="isFounder" className="ml-2 block text-sm text-gray-900">
-                      Kurucu
-                    </label>
-                  </div>
-
-                  <div className="flex items-center">
-                    <input
-                      {...register('isIntern')}
-                      type="checkbox"
-                      id="isIntern"
-                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                    />
-                    <label htmlFor="isIntern" className="ml-2 block text-sm text-gray-900">
-                      Stajyer
-                    </label>
-                  </div>
-
-                  <div className="flex items-center">
-                    <input
-                      {...register('hasPhD')}
-                      type="checkbox"
-                      id="hasPhD"
-                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                    />
-                    <label htmlFor="hasPhD" className="ml-2 block text-sm text-gray-900">
-                      Doktora
-                    </label>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
+          <Button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            {isSaving ? (
+              <>
+                <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                Kaydediliyor...
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4 mr-2" />
+                Kaydet
+              </>
+            )}
+          </Button>
         </div>
 
+        {/* Error Alert */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-md p-4">
-            <p className="text-sm text-red-600">{error}</p>
-          </div>
+          <Alert className="border-red-200 bg-red-50 text-red-800">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         )}
 
-        <div className="flex justify-end space-x-4">
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-          >
-            İptal
-          </button>
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 flex items-center space-x-2"
-          >
-            <Save className="w-4 h-4" />
-            <span>{isLoading ? 'Güncelleniyor...' : 'Güncelle'}</span>
-          </button>
+        {/* Success Alert */}
+        {success && (
+          <Alert className="border-green-200 bg-green-50 text-green-800">
+            <AlertDescription>{success}</AlertDescription>
+          </Alert>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Basic Information */}
+          <div className="lg:col-span-2 space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="w-5 h-5" />
+                  Temel Bilgiler
+                </CardTitle>
+                <CardDescription>
+                  Avukatın temel bilgilerini düzenleyin
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Ad Soyad *</Label>
+                    <Input
+                      id="name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Ad Soyad"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="title">Ünvan</Label>
+                    <Input
+                      id="title"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      placeholder="Ünvan"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="bio">Biyografi</Label>
+                  <Textarea
+                    id="bio"
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value)}
+                    placeholder="Biyografi"
+                    rows={4}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="flex items-center gap-2">
+                      <Mail className="w-4 h-4" />
+                      E-posta
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="E-posta"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone" className="flex items-center gap-2">
+                      <Phone className="w-4 h-4" />
+                      Telefon
+                    </Label>
+                    <Input
+                      id="phone"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="Telefon"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="address" className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4" />
+                    Adres
+                  </Label>
+                  <Textarea
+                    id="address"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="Adres"
+                    rows={2}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Translations */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Çeviriler</CardTitle>
+                <CardDescription>
+                  Farklı dillerdeki çevirileri düzenleyin
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {translations.map((translation, index) => (
+                  <div key={translation.language} className="space-y-3 p-4 border rounded-lg">
+                    <h4 className="font-medium text-foreground">
+                      {translation.language === 'TR' ? '🇹🇷 Türkçe' : '🇺🇸 English'}
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Ad Soyad</Label>
+                        <Input
+                          value={translation.name}
+                          onChange={(e) => updateTranslation(index, 'name', e.target.value)}
+                          placeholder="Ad Soyad"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Ünvan</Label>
+                        <Input
+                          value={translation.title}
+                          onChange={(e) => updateTranslation(index, 'title', e.target.value)}
+                          placeholder="Ünvan"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Biyografi</Label>
+                      <Textarea
+                        value={translation.bio}
+                        onChange={(e) => updateTranslation(index, 'bio', e.target.value)}
+                        placeholder="Biyografi"
+                        rows={3}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Image Upload */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Upload className="w-5 h-5" />
+                  Fotoğraf
+                </CardTitle>
+                <CardDescription>
+                  Avukat fotoğrafını yükleyin
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ImageUpload
+                  value={image}
+                  onChange={setImage}
+                  folder="lawyers"
+                />
+              </CardContent>
+            </Card>
+
+            {/* Role Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Özellikler</CardTitle>
+                <CardDescription>
+                  Avukatın özel niteliklerini seçin
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="isLawyer"
+                    checked={isLawyer}
+                    onCheckedChange={(checked) => {
+                      setIsLawyer(checked as boolean)
+                      if (checked) {
+                        setIsFounder(false)
+                        setIsPartner(false)
+                        setIsIntern(false)
+                      }
+                    }}
+                  />
+                  <Label htmlFor="isLawyer" className="flex items-center gap-2">
+                    <User className="w-4 h-4 text-gray-500" />
+                    Avukat
+                  </Label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="isPartner"
+                    checked={isPartner}
+                    onCheckedChange={(checked) => {
+                      setIsPartner(checked as boolean)
+                      if (checked) {
+                        setIsFounder(false)
+                        setIsIntern(false)
+                        setIsLawyer(false)
+                      }
+                    }}
+                  />
+                  <Label htmlFor="isPartner" className="flex items-center gap-2">
+                    <Star className="w-4 h-4 text-blue-500" />
+                    Ortak
+                  </Label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="isFounder"
+                    checked={isFounder}
+                    onCheckedChange={(checked) => {
+                      setIsFounder(checked as boolean)
+                      if (checked) {
+                        setIsPartner(false)
+                        setIsIntern(false)
+                        setIsLawyer(false)
+                      }
+                    }}
+                  />
+                  <Label htmlFor="isFounder" className="flex items-center gap-2">
+                    <Crown className="w-4 h-4 text-yellow-500" />
+                    Kurucu
+                  </Label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="isIntern"
+                    checked={isIntern}
+                    onCheckedChange={(checked) => {
+                      setIsIntern(checked as boolean)
+                      if (checked) {
+                        setIsFounder(false)
+                        setIsPartner(false)
+                        setIsLawyer(false)
+                      }
+                    }}
+                  />
+                  <Label htmlFor="isIntern" className="flex items-center gap-2">
+                    <GraduationCap className="w-4 h-4 text-green-500" />
+                    Stajyer
+                  </Label>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Order */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Sıralama</CardTitle>
+                <CardDescription>
+                  Avukatın sıralama pozisyonu
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-primary">
+                    #{lawyer.order + 1}
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Sıralama değiştirmek için <br />
+                    <Link 
+                      href="/admin/lawyers/order-new" 
+                      className="text-primary hover:underline"
+                    >
+                      Sıralama sayfasına
+                    </Link> gidin
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      </form>
+      </div>
     </div>
   )
 }

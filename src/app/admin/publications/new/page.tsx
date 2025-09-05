@@ -10,26 +10,13 @@ import { Language } from '@prisma/client'
 import { PublicationMultilingualForm } from '@/components/admin/PublicationMultilingualForm'
 
 const publicationSchema = z.object({
-  date: z.string().min(1, 'Tarih gereklidir'),
-  year: z.string().min(1, 'Yıl gereklidir'),
-  category: z.string().min(1, 'Kategori gereklidir'),
-  lawyerIds: z.array(z.string()).min(1, 'En az bir avukat seçilmelidir'),
+  date: z.string().min(1, '📅 Tarih seçimi zorunludur'),
+  year: z.string().min(1, '📆 Yıl bilgisi zorunludur'),
+  category: z.string().min(1, '🏷️ Kategori seçimi zorunludur'),
+  lawyerId: z.string().min(1, '👨‍💼 Avukat seçimi zorunludur'),
+  tags: z.string().optional(),
   published: z.boolean().default(false),
-  language: z.nativeEnum(Language).default(Language.TR),
-  translations: z
-    .array(
-      z.object({
-        language: z.nativeEnum(Language),
-        title: z.string().min(1, 'Başlık gereklidir'),
-        excerpt: z.string().min(1, 'Özet gereklidir'),
-        content: z.string().min(1, 'İçerik gereklidir'),
-      })
-    )
-    .min(2, 'Türkçe ve İngilizce içerik zorunludur')
-    .refine(
-      (arr) => arr.some((t) => t.language === Language.TR) && arr.some((t) => t.language === Language.EN),
-      { message: 'TR ve EN çevirileri zorunludur' }
-    )
+  language: z.nativeEnum(Language).default(Language.TR)
 })
 
 type PublicationForm = z.infer<typeof publicationSchema>
@@ -79,34 +66,103 @@ export default function NewPublicationPage() {
   }, [])
 
   const onSubmit = async (data: PublicationForm) => {
+    console.log("🚀 Yayın oluşturma başlatıldı")
+    console.log("📝 Form data:", data)
+    console.log("🌐 Translations:", translations)
+    console.log("👥 Lawyers:", lawyers)
+    console.log("🔍 Form validasyonu başarılı, onSubmit çağrıldı")
+
     setIsLoading(true)
     setError('')
 
-    try {
-      // Convert tags string to array
-      const tagsArray = data.tags ? data.tags.split(',').map(tag => tag.trim()).filter(tag => tag) : []
+    // Check if translations are empty
+    if (!translations || translations.length === 0) {
+      console.log("❌ Hata: Çeviri bulunamadı")
+      console.log("📊 Translations state:", translations)
+      setError('🌐 Lütfen en az bir dil için çeviri ekleyin (Türkçe veya İngilizce)')
+      setIsLoading(false)
+      return
+    }
 
+    console.log("📋 Mevcut çeviriler:", translations)
+
+    // Check if all required fields are filled
+    const hasValidTranslations = translations.every(t => 
+      t.title && t.title.trim() && 
+      t.excerpt && t.excerpt.trim() && 
+      t.content && t.content.trim()
+    )
+
+    console.log("✅ Validasyon sonucu:", hasValidTranslations)
+
+    if (!hasValidTranslations) {
+      console.log("❌ Hata: Çeviri alanları eksik")
+      console.log("📋 Çeviri detayları:", translations.map(t => ({
+        language: t.language,
+        hasTitle: !!t.title,
+        hasExcerpt: !!t.excerpt,
+        hasContent: !!t.content,
+        titleLength: t.title?.length || 0,
+        excerptLength: t.excerpt?.length || 0,
+        contentLength: t.content?.length || 0,
+        titleValue: t.title,
+        excerptValue: t.excerpt,
+        contentValue: t.content
+      })))
+      
+      const missingFields = translations.map(t => {
+        const missing = []
+        if (!t.title || !t.title.trim()) missing.push('başlık')
+        if (!t.excerpt || !t.excerpt.trim()) missing.push('özet')
+        if (!t.content || !t.content.trim()) missing.push('içerik')
+        return { language: t.language, missing }
+      }).filter(t => t.missing.length > 0)
+      
+      setError(`📝 Eksik alanlar: ${missingFields.map(m => `${m.language} - ${m.missing.join(', ')}`).join('; ')}`)
+      setIsLoading(false)
+      return
+    }
+
+    console.log("✅ Form validasyonu başarılı")
+
+    const requestBody = {
+      ...data,
+      translations
+    }
+
+    console.log("📤 API'ye gönderilecek veri:", requestBody)
+
+    try {
+      console.log("🌐 API isteği başlatılıyor...")
       const response = await fetch('/api/publications', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...data,
-          translations
-        }),
+        body: JSON.stringify(requestBody),
+      })
+
+      console.log("📡 API yanıtı alındı:", {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
       })
 
       if (!response.ok) {
-        throw new Error('Yayın oluşturulamadı')
+        const errorData = await response.json()
+        console.log("❌ API hatası:", errorData)
+        throw new Error(errorData.error || 'Yayın oluşturulamadı')
       }
 
       const publication = await response.json()
+      console.log("✅ Yayın başarıyla oluşturuldu:", publication)
       router.push('/admin/publications')
     } catch (err) {
+      console.log("💥 Hata oluştu:", err)
       setError(err instanceof Error ? err.message : 'Bir hata oluştu')
     } finally {
       setIsLoading(false)
+      console.log("🏁 İşlem tamamlandı")
     }
   }
 
@@ -126,11 +182,58 @@ export default function NewPublicationPage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={(e) => {
+        e.preventDefault()
+        console.log("📝 Form submit event tetiklendi")
+        
+        // Manuel validasyon
+        const formData = new FormData(e.currentTarget)
+        const data = {
+          date: formData.get('date') as string,
+          year: formData.get('year') as string,
+          category: formData.get('category') as string,
+          lawyerId: formData.get('lawyerId') as string,
+          tags: formData.get('tags') as string,
+          published: formData.get('published') === 'on'
+        }
+        
+        console.log("📊 Form verileri:", data)
+        console.log("🌐 Translations:", translations)
+        
+        // Validasyon
+        const errors = []
+        if (!data.date) errors.push('📅 Tarih seçimi zorunludur')
+        if (!data.year) errors.push('📆 Yıl bilgisi zorunludur')
+        if (!data.category) errors.push('🏷️ Kategori seçimi zorunludur')
+        if (!data.lawyerId) errors.push('👨‍💼 Avukat seçimi zorunludur')
+        if (!translations || translations.length === 0) {
+          errors.push('🌐 En az bir dil için çeviri eklenmelidir')
+        } else {
+          const hasValidTranslations = translations.every(t => 
+            t.title && t.title.trim() && 
+            t.excerpt && t.excerpt.trim() && 
+            t.content && t.content.trim()
+          )
+          if (!hasValidTranslations) {
+            errors.push('📝 Tüm çeviriler için başlık, özet ve içerik alanları doldurulmalıdır')
+          }
+        }
+        
+        if (errors.length > 0) {
+          setError(`⚠️ ${errors.join(', ')}`)
+          return
+        }
+        
+        // Form validasyonu başarılı, onSubmit'i çağır
+        onSubmit(data as any)
+      }} className="space-y-6">
         {/* Multilingual Content */}
         <PublicationMultilingualForm
           translations={translations}
-          onTranslationsChange={setTranslations}
+          onTranslationsChange={(newTranslations) => {
+            console.log("🔄 Translations state güncelleniyor:", newTranslations)
+            setTranslations(newTranslations)
+          }}
         />
 
         <div className="bg-white shadow rounded-lg p-6 mt-6">
@@ -143,11 +246,15 @@ export default function NewPublicationPage() {
               </label>
               <input
                 {...register('date')}
+                name="date"
                 type="date"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
               {errors.date && (
-                <p className="mt-1 text-sm text-red-600">{errors.date.message}</p>
+                <p className="mt-1 text-sm text-red-600 flex items-center">
+                  <span className="mr-1">⚠️</span>
+                  {errors.date.message}
+                </p>
               )}
             </div>
 
@@ -157,6 +264,7 @@ export default function NewPublicationPage() {
               </label>
               <input
                 {...register('year')}
+                name="year"
                 type="number"
                 min="2020"
                 max="2030"
@@ -164,7 +272,10 @@ export default function NewPublicationPage() {
                 placeholder="2024"
               />
               {errors.year && (
-                <p className="mt-1 text-sm text-red-600">{errors.year.message}</p>
+                <p className="mt-1 text-sm text-red-600 flex items-center">
+                  <span className="mr-1">⚠️</span>
+                  {errors.year.message}
+                </p>
               )}
             </div>
 
@@ -174,6 +285,7 @@ export default function NewPublicationPage() {
               </label>
               <select
                 {...register('lawyerId')}
+                name="lawyerId"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="">Avukat seçiniz</option>
@@ -183,8 +295,11 @@ export default function NewPublicationPage() {
                   </option>
                 ))}
               </select>
-              {errors.lawyerIds && (
-                <p className="mt-1 text-sm text-red-600">{(errors.lawyerIds as any).message}</p>
+              {errors.lawyerId && (
+                <p className="mt-1 text-sm text-red-600 flex items-center">
+                  <span className="mr-1">⚠️</span>
+                  {errors.lawyerId.message}
+                </p>
               )}
             </div>
 
@@ -237,6 +352,7 @@ export default function NewPublicationPage() {
               </label>
               <select
                 {...register('category')}
+                name="category"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="">Seçiniz</option>
@@ -247,7 +363,10 @@ export default function NewPublicationPage() {
                 <option value="Diğer">Diğer</option>
               </select>
               {errors.category && (
-                <p className="mt-1 text-sm text-red-600">{errors.category.message}</p>
+                <p className="mt-1 text-sm text-red-600 flex items-center">
+                  <span className="mr-1">⚠️</span>
+                  {errors.category.message}
+                </p>
               )}
             </div>
 
@@ -263,6 +382,7 @@ export default function NewPublicationPage() {
               <div className="flex items-center">
                 <input
                   {...register('published')}
+                  name="published"
                   type="checkbox"
                   id="published"
                   className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
@@ -277,7 +397,10 @@ export default function NewPublicationPage() {
 
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-md p-4">
-            <p className="text-sm text-red-600">{error}</p>
+            <div className="flex items-start">
+              <span className="text-red-500 mr-2">⚠️</span>
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
           </div>
         )}
 
@@ -292,6 +415,15 @@ export default function NewPublicationPage() {
           <button
             type="submit"
             disabled={isLoading}
+            onClick={() => {
+              console.log("🖱️ Kaydet butonuna tıklandı")
+              console.log("📊 Form durumu:", {
+                isLoading,
+                translationsCount: translations.length,
+                lawyersCount: lawyers.length,
+                translations: translations
+              })
+            }}
             className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 flex items-center space-x-2"
           >
             <Save className="w-4 h-4" />
