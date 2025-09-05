@@ -4,6 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Users, Megaphone, Calendar, BookOpen, Mail, Briefcase, Newspaper } from 'lucide-react'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
 export default async function AdminDashboard() {
   const user = await getCurrentUser()
 
