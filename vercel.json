@@ -11,12 +11,5 @@
   },
   "env": {
     "NODE_ENV": "production"
-  },
-  "redirects": [
-    {
-      "source": "/(.*)",
-      "destination": "https://tunca-admin.digitalvoyage.agency/$1",
-      "permanent": true
-    }
-  ]
+  }
 }
