@@ -12,7 +12,6 @@
   "env": {
     "NODE_ENV": "production"
   },
-  "domains": ["tunca-admin.digitalvoyage.agency"],
   "redirects": [
     {
       "source": "/(.*)",
