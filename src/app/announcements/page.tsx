@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
+import Image from 'next/image'
 import { RichTextRenderer } from '@/components/ui/rich-text-renderer'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -17,6 +18,18 @@ export default async function AnnouncementsPage() {
     orderBy: {
       createdAt: 'desc'
     }
+  })
+
+  // Debug: Log announcements to see what we have
+  console.log('📋 Duyurular:', announcements.length)
+  announcements.forEach((announcement, index) => {
+    console.log(`Duyuru ${index + 1}:`, {
+      id: announcement.id,
+      title: announcement.translations[0]?.title || 'Başlık yok',
+      image: announcement.image,
+      hasImage: !!announcement.image,
+      published: announcement.published
+    })
   })
 
   return (
@@ -46,26 +59,40 @@ export default async function AnnouncementsPage() {
             return (
               <Card key={announcement.id} className="h-full flex flex-col">
                 {/* Featured Image */}
-                {announcement.image && (
-                  <div className="aspect-video overflow-hidden rounded-t-lg">
-                    <img
+                <div className="aspect-video overflow-hidden rounded-t-lg bg-gray-200 relative">
+                  {announcement.image ? (
+                    <Image
                       src={announcement.image}
                       alt={translation.title}
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                      fill
+                      className="object-cover hover:scale-105 transition-transform duration-300"
+                      onError={() => {
+                        console.log('❌ Görsel yüklenemedi:', announcement.image)
+                      }}
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     />
-                  </div>
-                )}
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-100 to-blue-200 text-blue-600">
+                      <div className="text-center">
+                        <Calendar className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm font-medium">Duyuru Görseli</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 <CardHeader>
                   <div className="flex items-center gap-2 mb-2">
-                    <Badge variant="secondary">
-                      <Tag className="w-3 h-3 mr-1" />
-                      {announcement.category}
-                    </Badge>
                     <Badge variant="outline">
                       <Calendar className="w-3 h-3 mr-1" />
                       {announcement.date.toLocaleDateString('tr-TR')}
                     </Badge>
+                    {announcement.isDark && (
+                      <Badge variant="secondary">
+                        <Tag className="w-3 h-3 mr-1" />
+                        Koyu Tema
+                      </Badge>
+                    )}
                   </div>
                   
                   <CardTitle className="line-clamp-2">

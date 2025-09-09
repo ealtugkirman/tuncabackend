@@ -36,8 +36,7 @@ export default function AdminSidebar({ user }: AdminSidebarProps) {
   const navigation = [
     { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
     { name: 'Avukatlar', href: '/admin/lawyers', icon: Users },
-    { name: 'Avukat Sıralama', href: '/admin/lawyers/order', icon: ArrowUpDown },
-    { name: 'Avukat Sıralama (Yeni)', href: '/admin/lawyers/order-new', icon: ArrowUpDown },
+    { name: 'Avukat Sıralama', href: '/admin/lawyers/order-new', icon: ArrowUpDown },
     { name: 'Duyurular', href: '/admin/announcements', icon: Megaphone },
     { name: 'Etkinlikler', href: '/admin/events', icon: Calendar },
     { name: 'Yayınlar', href: '/admin/publications', icon: BookOpen },

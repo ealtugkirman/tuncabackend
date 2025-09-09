@@ -214,7 +214,7 @@ export default function EditPublicationPage({ params }: EditPublicationPageProps
                 <option value="">Seçiniz</option>
                 <option value="Kurumsal Hukuk">Kurumsal Hukuk</option>
                 <option value="İş Hukuku">İş Hukuku</option>
-                <option value="Ticaret Hukuku">Ticaret Hukuku</option>
+                <option value="Ticaret Hukuku ve Sermaye Piyasaları">Ticaret Hukuku ve Sermaye Piyasaları</option>
                 <option value="Sermaye Piyasaları">Sermaye Piyasaları</option>
                 <option value="Birleşme ve Devralmalar">Birleşme ve Devralmalar</option>
                 <option value="Diğer">Diğer</option>

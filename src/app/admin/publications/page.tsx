@@ -227,7 +227,7 @@ export default function AdminPublicationsPage() {
                 <SelectItem value="all">Tüm kategoriler</SelectItem>
                 <SelectItem value="Birleşme ve Devralmalar">Birleşme ve Devralmalar</SelectItem>
                 <SelectItem value="Bankacılık ve Finans Hukuku">Bankacılık ve Finans Hukuku</SelectItem>
-                <SelectItem value="Uluslararası Ticaret Hukuku">Uluslararası Ticaret Hukuku</SelectItem>
+                <SelectItem value="Uluslararası Ticaret Hukuku ve Sermaye Piyasaları">Uluslararası Ticaret Hukuku ve Sermaye Piyasaları</SelectItem>
                 <SelectItem value="Sağlık ve İlaç Hukuku">Sağlık ve İlaç Hukuku</SelectItem>
                 <SelectItem value="Dava Takibi ve Tahkim">Dava Takibi ve Tahkim</SelectItem>
                 <SelectItem value="Enerji Hukuku">Enerji Hukuku</SelectItem>
@@ -236,7 +236,6 @@ export default function AdminPublicationsPage() {
                 <SelectItem value="Maden ve Petrol Hukuku">Maden ve Petrol Hukuku</SelectItem>
                 <SelectItem value="Vergi Hukuku">Vergi Hukuku</SelectItem>
                 <SelectItem value="Gayrimenkul ve İnşaat Hukuku">Gayrimenkul ve İnşaat Hukuku</SelectItem>
-                <SelectItem value="Şirketler Hukuku">Şirketler Hukuku</SelectItem>
                 <SelectItem value="Spor Hukuku">Spor Hukuku</SelectItem>
                 <SelectItem value="Fikri Mülkiyet Hukuku">Fikri Mülkiyet Hukuku</SelectItem>
                 <SelectItem value="Rekabet Hukuku">Rekabet Hukuku</SelectItem>

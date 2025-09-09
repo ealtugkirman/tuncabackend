@@ -32,10 +32,7 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   
-  // Disable static generation for admin routes
-  experimental: {
-    missingSuspenseWithCSRBailout: false,
-  },
+  // Experimental options removed
   
   // Headers for security
   async headers() {

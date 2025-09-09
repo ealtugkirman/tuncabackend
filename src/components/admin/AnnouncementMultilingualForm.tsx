@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { getLanguageName } from '@/lib/i18n'
 import { Language } from '@prisma/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -15,7 +15,7 @@ import { Plus, Trash2 } from 'lucide-react'
 const PRACTICE_AREAS_TR = [
   "Birleşme ve Devralmalar",
   "Bankacılık ve Finans Hukuku",
-  "Uluslararası Ticaret Hukuku",
+  "Uluslararası Ticaret Hukuku ve Sermaye Piyasaları",
   "Sağlık ve İlaç Hukuku",
   "Dava Takibi ve Tahkim",
   "Enerji Hukuku",
@@ -23,8 +23,7 @@ const PRACTICE_AREAS_TR = [
   "İş Hukuku",
   "Maden ve Petrol Hukuku",
   "Vergi Hukuku",
-  "Gayrimenkul ve İnşaat Hukuku",
-  "Şirketler Hukuku",
+  "Gayrimenkul ve İnşaat Hukuku",,
   "Spor Hukuku",
   "Fikri Mülkiyet Hukuku",
   "Rekabet Hukuku"
@@ -64,6 +63,22 @@ export function AnnouncementMultilingualForm({
 }: AnnouncementMultilingualFormProps) {
   const [activeTab, setActiveTab] = useState<string>(Language.TR)
 
+  // Ensure Turkish translation exists by default
+  React.useEffect(() => {
+    const hasTurkish = translations.some(t => t.language === Language.TR)
+    if (!hasTurkish) {
+      onTranslationsChange([
+        {
+          language: Language.TR,
+          title: '',
+          excerpt: '',
+          content: ''
+        },
+        ...translations
+      ])
+    }
+  }, [translations, onTranslationsChange])
+
   const getTranslation = (language: Language): AnnouncementTranslation => {
     return translations.find(t => t.language === language) || {
       language,
@@ -74,24 +89,27 @@ export function AnnouncementMultilingualForm({
   }
 
   const updateTranslation = (language: Language, field: keyof Omit<AnnouncementTranslation, 'language'>, value: string) => {
-    const updatedTranslations = translations.map(t => 
-      t.language === language 
-        ? { ...t, [field]: value }
-        : t
-    )
-
-    // If translation doesn't exist, add it
-    if (!translations.find(t => t.language === language)) {
-      updatedTranslations.push({
+    const existingTranslation = translations.find(t => t.language === language)
+    
+    if (existingTranslation) {
+      // Update existing translation
+      const updatedTranslations = translations.map(t => 
+        t.language === language 
+          ? { ...t, [field]: value }
+          : t
+      )
+      onTranslationsChange(updatedTranslations)
+    } else {
+      // Add new translation
+      const newTranslation: AnnouncementTranslation = {
         language,
-        [field]: value,
         title: '',
         excerpt: '',
-        content: ''
-      })
+        content: '',
+        [field]: value
+      }
+      onTranslationsChange([...translations, newTranslation])
     }
-
-    onTranslationsChange(updatedTranslations)
   }
 
   const addTranslation = (language: Language) => {

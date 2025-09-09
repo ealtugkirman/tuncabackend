@@ -15,7 +15,7 @@ import { Plus, Trash2 } from 'lucide-react'
 const PRACTICE_AREAS_TR = [
   "Birleşme ve Devralmalar",
   "Bankacılık ve Finans Hukuku",
-  "Uluslararası Ticaret Hukuku",
+  "Uluslararası Ticaret Hukuku ve Sermaye Piyasaları",
   "Sağlık ve İlaç Hukuku",
   "Dava Takibi ve Tahkim",
   "Enerji Hukuku",

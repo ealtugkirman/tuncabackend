@@ -204,7 +204,7 @@ export default function AdminEventsPage() {
                 <SelectItem value="all">Tüm kategoriler</SelectItem>
                 <SelectItem value="Birleşme ve Devralmalar">Birleşme ve Devralmalar</SelectItem>
                 <SelectItem value="Bankacılık ve Finans Hukuku">Bankacılık ve Finans Hukuku</SelectItem>
-                <SelectItem value="Uluslararası Ticaret Hukuku">Uluslararası Ticaret Hukuku</SelectItem>
+                <SelectItem value="Uluslararası Ticaret Hukuku ve Sermaye Piyasaları">Uluslararası Ticaret Hukuku ve Sermaye Piyasaları</SelectItem>
                 <SelectItem value="Sağlık ve İlaç Hukuku">Sağlık ve İlaç Hukuku</SelectItem>
                 <SelectItem value="Dava Takibi ve Tahkim">Dava Takibi ve Tahkim</SelectItem>
                 <SelectItem value="Enerji Hukuku">Enerji Hukuku</SelectItem>

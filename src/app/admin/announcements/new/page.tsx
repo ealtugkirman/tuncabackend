@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -21,16 +21,7 @@ const announcementSchema = z.object({
   isDark: z.boolean().default(false),
   published: z.boolean().default(false),
   language: z.nativeEnum(Language).default(Language.TR),
-  translations: z
-    .array(
-      z.object({
-        language: z.nativeEnum(Language),
-        title: z.string().min(1, "Başlık gereklidir"),
-        excerpt: z.string().min(1, "Özet gereklidir"),
-        content: z.string().min(1, "İçerik gereklidir"),
-      }),
-    )
-    .min(1, "En az bir dil için çeviri gereklidir"),
+  translations: z.array(z.any()).optional(), // We'll validate translations manually
 })
 
 type AnnouncementForm = z.infer<typeof announcementSchema>
@@ -46,7 +37,14 @@ export default function NewAnnouncementPage() {
       excerpt?: string
       content?: string
     }>
-  >([])
+  >([
+    {
+      language: Language.TR,
+      title: '',
+      excerpt: '',
+      content: ''
+    }
+  ])
 
   const {
     register,
@@ -60,57 +58,110 @@ export default function NewAnnouncementPage() {
       published: false,
       isDark: false,
       language: Language.TR,
-      translations: [],
+      translations: [
+        {
+          language: Language.TR,
+          title: '',
+          excerpt: '',
+          content: ''
+        }
+      ],
     },
   })
 
+  // Sync translations with form state
+  React.useEffect(() => {
+    setValue("translations", translations)
+  }, [translations, setValue])
+
+
   const onSubmit = async (data: AnnouncementForm) => {
+    console.log("🎯 onSubmit fonksiyonu çağrıldı!")
+    console.log("📋 Form data:", data)
+    console.log("🌐 Translations state:", translations)
+    
     setIsLoading(true)
     setError("")
 
-    console.log("Form data:", data)
-    console.log("Translations:", translations)
-
     // Check if translations are empty
     if (!translations || translations.length === 0) {
+      console.log("❌ Hata: Çeviri yok")
       setError("En az bir dil için çeviri eklemelisiniz")
       setIsLoading(false)
       return
     }
 
-    // Check if all required fields are filled
-    const hasValidTranslations = translations.every(t => 
+    // Filter out empty translations and check if we have any valid ones
+    const validTranslations = translations.filter(t => 
       t.title && t.title.trim() && 
       t.excerpt && t.excerpt.trim() && 
       t.content && t.content.trim()
     )
 
-    if (!hasValidTranslations) {
-      setError("Tüm çeviriler için başlık, özet ve içerik alanları doldurulmalıdır")
+    console.log("✅ Validasyon sonucu:", validTranslations.length > 0)
+    console.log("📋 Toplam çeviri:", translations.length)
+    console.log("📋 Geçerli çeviri:", validTranslations.length)
+
+    if (validTranslations.length === 0) {
+      console.log("❌ Hata: Geçerli çeviri yok")
+      console.log("📋 Çeviri detayları:", translations.map(t => ({
+        language: t.language,
+        hasTitle: !!t.title,
+        hasExcerpt: !!t.excerpt,
+        hasContent: !!t.content,
+        titleLength: t.title?.length || 0,
+        excerptLength: t.excerpt?.length || 0,
+        contentLength: t.content?.length || 0,
+        titleValue: t.title,
+        excerptValue: t.excerpt,
+        contentValue: t.content
+      })))
+      
+      const missingFields = translations.map(t => {
+        const missing = []
+        if (!t.title || !t.title.trim()) missing.push('başlık')
+        if (!t.excerpt || !t.excerpt.trim()) missing.push('özet')
+        if (!t.content || !t.content.trim()) missing.push('içerik')
+        return { language: t.language, missing }
+      }).filter(t => t.missing.length > 0)
+      
+      setError(`📝 Eksik alanlar: ${missingFields.map(m => `${m.language} - ${m.missing.join(', ')}`).join('; ')}`)
       setIsLoading(false)
       return
     }
 
+    console.log("✅ Form validasyonu başarılı")
+
+    const requestBody = {
+      ...data,
+      translations: validTranslations
+    }
+
+    console.log("📤 API'ye gönderilecek veri:", requestBody)
+
     try {
+      console.log("🌐 API isteği başlatılıyor...")
       const response = await fetch("/api/announcements", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          ...data,
-          translations: translations,
-        }),
+        body: JSON.stringify(requestBody),
       })
+
+      console.log("📡 API yanıtı:", response.status, response.statusText)
 
       if (!response.ok) {
         const errorData = await response.json()
+        console.log("❌ API hatası:", errorData)
         throw new Error(errorData.error || "Duyuru oluşturulamadı")
       }
 
-      await response.json()
+      const result = await response.json()
+      console.log("✅ Duyuru başarıyla oluşturuldu:", result)
       router.push("/admin/announcements")
     } catch (err) {
+      console.log("💥 Hata oluştu:", err)
       setError(err instanceof Error ? err.message : "Bir hata oluştu")
     } finally {
       setIsLoading(false)
@@ -142,7 +193,12 @@ export default function NewAnnouncementPage() {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+        <form onSubmit={(e) => {
+          console.log("📝 Form submit event tetiklendi")
+          e.preventDefault()
+          console.log("🔄 handleSubmit çağrılıyor...")
+          handleSubmit(onSubmit)(e)
+        }} className="space-y-8">
           {/* Multilingual Content Card */}
           <Card className="bg-gray-900 border-gray-800">
             <CardHeader className="border-b border-gray-800">
@@ -207,6 +263,8 @@ export default function NewAnnouncementPage() {
                   </div>
                 </div>
 
+                
+
                 {/* Settings */}
                 <div className="lg:col-span-2 space-y-4 p-4 bg-gray-800 border border-gray-700 rounded-lg">
                   <h3 className="text-sm font-medium text-gray-200 flex items-center space-x-2">
@@ -261,6 +319,7 @@ export default function NewAnnouncementPage() {
             <Button
               type="submit"
               disabled={isLoading}
+              onClick={() => console.log("🔘 Kaydet butonu tıklandı")}
               className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save className="w-4 h-4 mr-2" />

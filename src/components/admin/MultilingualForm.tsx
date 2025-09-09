@@ -10,39 +10,27 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { RichTextEditor } from '@/components/ui/rich-text-editor'
 
-const PRACTICE_AREAS_TR = [
-  "Birleşme ve Devralmalar",
-  "Bankacılık ve Finans Hukuku",
-  "Uluslararası Ticaret Hukuku",
-  "Sağlık ve İlaç Hukuku",
-  "Dava Takibi ve Tahkim",
-  "Enerji Hukuku",
-  "Kamu İhale Hukuku",
-  "İş Hukuku",
-  "Maden ve Petrol Hukuku",
-  "Vergi Hukuku",
-  "Gayrimenkul ve İnşaat Hukuku",
-  "Şirketler Hukuku",
-  "Spor Hukuku",
-  "Fikri Mülkiyet Hukuku",
-  "Rekabet Hukuku"
+// Practice areas with TR-EN mapping
+const PRACTICE_AREAS_MAPPING = [
+  { tr: "Birleşme ve Devralmalar", en: "Mergers and Acquisitions" },
+  { tr: "Bankacılık ve Finans Hukuku", en: "Banking and Finance Law" },
+  { tr: "Sağlık ve İlaç Hukuku", en: "Health and Pharmaceutical Law" },
+  { tr: "Dava Takibi ve Tahkim", en: "Litigation and Arbitration" },
+  { tr: "Enerji Hukuku", en: "Energy Law" },
+  { tr: "Kamu İhale Hukuku", en: "Public Procurement Law" },
+  { tr: "İş Hukuku", en: "Labor Law" },
+  { tr: "Maden ve Petrol Hukuku", en: "Mining and Petroleum Law" },
+  { tr: "Vergi Hukuku", en: "Tax Law" },
+  { tr: "Gayrimenkul ve İnşaat Hukuku", en: "Real Estate and Construction Law" },
+  { tr: "Kişisel Verilerin Korunması Hukuku", en: "Personal Data Protection Law" },
+  { tr: "Ticaret Hukuku ve Sermaye Piyasaları", en: "Commercial, Corporate Law and Capital Markets" },
+  { tr: "Spor Hukuku", en: "Sports Law" },
+  { tr: "Fikri Mülkiyet Hukuku", en: "Intellectual Property Law" },
+  { tr: "Rekabet Hukuku", en: "Competition Law" }
 ]
 
-const PRACTICE_AREAS_EN = [
-  "Corporate Law & Mergers, Acquisitions and Spin-offs",
-  "Banking and Finance Law",
-  "International Commercial Law & Arbitration",
-  "Health and Pharmaceutical Law",
-  "International Commercial Arbitration & Investment Arbitration",
-  "Energy and Mining Law",
-  "Public Procurement Law",
-  "Labor and Social Security Law",
-  "Tax Law",
-  "Construction and Zoning Law",
-  "Sports Law",
-  "Intellectual and Industrial Property Law",
-  "Competition Law"
-]
+const PRACTICE_AREAS_TR = PRACTICE_AREAS_MAPPING.map(item => item.tr)
+const PRACTICE_AREAS_EN = PRACTICE_AREAS_MAPPING.map(item => item.en)
 
 interface Translation {
   language: Language
@@ -71,11 +59,33 @@ export function MultilingualForm({
   const languages: Language[] = [Language.TR, Language.EN]
 
   const updateTranslation = (language: Language, field: keyof Omit<Translation, 'language'>, value: string | string[]) => {
-    const updatedTranslations = translations.map(translation => 
+    let updatedTranslations = translations.map(translation => 
       translation.language === language 
         ? { ...translation, [field]: value }
         : translation
     )
+
+    // Sync practice areas between TR and EN
+    if (field === 'practiceAreas' && Array.isArray(value)) {
+      const otherLanguage = language === Language.TR ? Language.EN : Language.TR
+      const mapping = PRACTICE_AREAS_MAPPING
+      
+      // Find corresponding practice areas in the other language
+      const syncedAreas = value.map(selectedArea => {
+        const mappingItem = mapping.find(item => 
+          language === Language.TR ? item.tr === selectedArea : item.en === selectedArea
+        )
+        return language === Language.TR ? mappingItem?.en : mappingItem?.tr
+      }).filter(Boolean) as string[]
+
+      // Update the other language's practice areas
+      updatedTranslations = updatedTranslations.map(translation => 
+        translation.language === otherLanguage 
+          ? { ...translation, practiceAreas: syncedAreas }
+          : translation
+      )
+    }
+
     onTranslationsChange(updatedTranslations)
   }
 

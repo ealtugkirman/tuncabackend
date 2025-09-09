@@ -8,15 +8,16 @@ import { z } from 'zod'
 import { ArrowLeft, Save } from 'lucide-react'
 import { Language } from '@prisma/client'
 import { PublicationMultilingualForm } from '@/components/admin/PublicationMultilingualForm'
+import ImageUpload from '@/components/ImageUpload'
 
 const publicationSchema = z.object({
   date: z.string().min(1, '📅 Tarih seçimi zorunludur'),
   year: z.string().min(1, '📆 Yıl bilgisi zorunludur'),
-  category: z.string().min(1, '🏷️ Kategori seçimi zorunludur'),
-  lawyerId: z.string().min(1, '👨‍💼 Avukat seçimi zorunludur'),
   tags: z.string().optional(),
   published: z.boolean().default(false),
-  language: z.nativeEnum(Language).default(Language.TR)
+  language: z.nativeEnum(Language).default(Language.TR),
+  image: z.string().optional(),
+  lawyerIds: z.array(z.string()).optional()
 })
 
 type PublicationForm = z.infer<typeof publicationSchema>
@@ -26,6 +27,8 @@ export default function NewPublicationPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [lawyers, setLawyers] = useState([])
+  const [selectedLawyerIds, setSelectedLawyerIds] = useState<string[]>([])
+  const [imagePublicId, setImagePublicId] = useState('')
   const [translations, setTranslations] = useState<Array<{
     language: Language
     title?: string
@@ -43,11 +46,13 @@ export default function NewPublicationPage() {
     resolver: zodResolver(publicationSchema),
     defaultValues: {
       published: false,
-      translations: []
+      translations: [],
+      lawyerIds: []
     }
   })
 
   const published = watch('published')
+  const image = watch('image')
 
   // Fetch lawyers
   useEffect(() => {
@@ -69,7 +74,8 @@ export default function NewPublicationPage() {
     console.log("🚀 Yayın oluşturma başlatıldı")
     console.log("📝 Form data:", data)
     console.log("🌐 Translations:", translations)
-    console.log("👥 Lawyers:", lawyers)
+    console.log("👥 Seçilen Avukatlar:", selectedLawyerIds)
+    console.log("🖼️ Image:", image, imagePublicId)
     console.log("🔍 Form validasyonu başarılı, onSubmit çağrıldı")
 
     setIsLoading(true)
@@ -127,7 +133,10 @@ export default function NewPublicationPage() {
 
     const requestBody = {
       ...data,
-      translations
+      translations,
+      image,
+      imagePublicId,
+      lawyerIds: selectedLawyerIds
     }
 
     console.log("📤 API'ye gönderilecek veri:", requestBody)
@@ -191,21 +200,18 @@ export default function NewPublicationPage() {
         const data = {
           date: formData.get('date') as string,
           year: formData.get('year') as string,
-          category: formData.get('category') as string,
-          lawyerId: formData.get('lawyerId') as string,
           tags: formData.get('tags') as string,
           published: formData.get('published') === 'on'
         }
         
         console.log("📊 Form verileri:", data)
         console.log("🌐 Translations:", translations)
+        console.log("👥 Seçilen Avukatlar:", selectedLawyerIds)
         
         // Validasyon
         const errors = []
         if (!data.date) errors.push('📅 Tarih seçimi zorunludur')
         if (!data.year) errors.push('📆 Yıl bilgisi zorunludur')
-        if (!data.category) errors.push('🏷️ Kategori seçimi zorunludur')
-        if (!data.lawyerId) errors.push('👨‍💼 Avukat seçimi zorunludur')
         if (!translations || translations.length === 0) {
           errors.push('🌐 En az bir dil için çeviri eklenmelidir')
         } else {
@@ -239,6 +245,22 @@ export default function NewPublicationPage() {
         <div className="bg-white shadow rounded-lg p-6 mt-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Title handled in translations */}
+
+            {/* Image Upload */}
+            <div className="lg:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Kapak Görseli
+              </label>
+              <ImageUpload
+                value={image}
+                onChange={(url, publicId) => {
+                  setValue('image', url)
+                  setImagePublicId(publicId || '')
+                }}
+                folder="publications"
+                className="w-full"
+              />
+            </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -279,27 +301,31 @@ export default function NewPublicationPage() {
               )}
             </div>
 
-            <div>
+            {/* Lawyers Multi-select */}
+            <div className="lg:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Avukat (Yazar) *
+                Yazar(lar)
               </label>
-              <select
-                {...register('lawyerId')}
-                name="lawyerId"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="">Avukat seçiniz</option>
-                {lawyers && Array.isArray(lawyers) && lawyers.map((lawyer: any) => (
-                  <option key={lawyer.id} value={lawyer.id}>
-                    {lawyer.name}
-                  </option>
-                ))}
-              </select>
-              {errors.lawyerId && (
-                <p className="mt-1 text-sm text-red-600 flex items-center">
-                  <span className="mr-1">⚠️</span>
-                  {errors.lawyerId.message}
-                </p>
+              <div className="max-h-56 overflow-auto grid grid-cols-1 md:grid-cols-2 gap-2 border border-gray-200 rounded-md p-3">
+                {lawyers && Array.isArray(lawyers) && lawyers.map((lawyer: any) => {
+                  const checked = selectedLawyerIds.includes(lawyer.id)
+                  return (
+                    <label key={lawyer.id} className="flex items-center space-x-3 p-2 bg-gray-50 rounded border border-gray-200 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) => {
+                          setSelectedLawyerIds(prev => e.target.checked ? [...prev, lawyer.id] : prev.filter(id => id !== lawyer.id))
+                        }}
+                        className="h-4 w-4"
+                      />
+                      <span className="text-gray-800">{lawyer.name}</span>
+                    </label>
+                  )
+                })}
+              </div>
+              {selectedLawyerIds.length > 0 && (
+                <p className="text-xs text-gray-500 mt-1">Seçilen: {selectedLawyerIds.length}</p>
               )}
             </div>
 
@@ -314,7 +340,7 @@ export default function NewPublicationPage() {
                 <option value="">Seçiniz</option>
                 <option value="Birleşme ve Devralmalar">Birleşme ve Devralmalar</option>
                 <option value="Bankacılık ve Finans Hukuku">Bankacılık ve Finans Hukuku</option>
-                <option value="Uluslararası Ticaret Hukuku">Uluslararası Ticaret Hukuku</option>
+                <option value="Uluslararası Ticaret Hukuku ve Sermaye Piyasaları">Uluslararası Ticaret Hukuku ve Sermaye Piyasaları</option>
                 <option value="Sağlık ve İlaç Hukuku">Sağlık ve İlaç Hukuku</option>
                 <option value="Dava Takibi ve Tahkim">Dava Takibi ve Tahkim</option>
                 <option value="Enerji Hukuku">Enerji Hukuku</option>
@@ -323,7 +349,6 @@ export default function NewPublicationPage() {
                 <option value="Maden ve Petrol Hukuku">Maden ve Petrol Hukuku</option>
                 <option value="Vergi Hukuku">Vergi Hukuku</option>
                 <option value="Gayrimenkul ve İnşaat Hukuku">Gayrimenkul ve İnşaat Hukuku</option>
-                <option value="Şirketler Hukuku">Şirketler Hukuku</option>
                 <option value="Spor Hukuku">Spor Hukuku</option>
                 <option value="Fikri Mülkiyet Hukuku">Fikri Mülkiyet Hukuku</option>
                 <option value="Rekabet Hukuku">Rekabet Hukuku</option>
@@ -346,29 +371,7 @@ export default function NewPublicationPage() {
               )}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Kategori *
-              </label>
-              <select
-                {...register('category')}
-                name="category"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="">Seçiniz</option>
-                <option value="Mevzuat Değişikliği">Mevzuat Değişikliği</option>
-                <option value="Yargıtay Kararları">Yargıtay Kararları</option>
-                <option value="Sektörel Analiz">Sektörel Analiz</option>
-                <option value="Uygulama Notları">Uygulama Notları</option>
-                <option value="Diğer">Diğer</option>
-              </select>
-              {errors.category && (
-                <p className="mt-1 text-sm text-red-600 flex items-center">
-                  <span className="mr-1">⚠️</span>
-                  {errors.category.message}
-                </p>
-              )}
-            </div>
+            {/* Category removed */}
 
             
 

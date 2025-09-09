@@ -3,119 +3,131 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Save, Upload, User, Mail, Phone, MapPin, Crown, Star, GraduationCap } from 'lucide-react'
+import { ArrowLeft, Save, Camera, Award, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Checkbox } from '@/components/ui/checkbox'
+//
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import ImageUpload from '@/components/ImageUpload'
-import { useLanguage } from '@/contexts/LanguageContext'
+import { MultilingualForm } from '@/components/admin/MultilingualForm'
+import { Language } from '@prisma/client'
 
-interface LawyerTranslation {
-  language: string
-  name: string
-  title: string
-  bio: string
-}
-
-interface Lawyer {
+interface LawyerApiResponse {
   id: string
-  name: string
-  title: string
-  bio: string
-  email: string
-  phone: string
-  address: string
+  slug: string
   image?: string
+  imagePublicId?: string
   isPartner: boolean
   isFounder: boolean
   isIntern: boolean
+  isLawyer: boolean
   order: number
-  translations: LawyerTranslation[]
+  translations: Array<{
+    language: Language
+    name?: string
+    bio?: string
+    education?: string
+    languages?: string
+    practiceAreas?: string[]
+    bar?: string
+    phone?: string
+    email?: string
+  }>
 }
 
 export default function EditLawyerPage() {
   const router = useRouter()
   const params = useParams()
-  const { locale } = useLanguage()
   const lawyerId = params.id as string
 
-  const [lawyer, setLawyer] = useState<Lawyer | null>(null)
+  const [lawyer, setLawyer] = useState<LawyerApiResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
-  // Form states
-  const [name, setName] = useState('')
-  const [title, setTitle] = useState('')
-  const [bio, setBio] = useState('')
-  const [email, setEmail] = useState('')
-  const [phone, setPhone] = useState('')
-  const [address, setAddress] = useState('')
   const [image, setImage] = useState('')
+  const [imagePublicId, setImagePublicId] = useState('')
   const [isPartner, setIsPartner] = useState(false)
   const [isFounder, setIsFounder] = useState(false)
   const [isIntern, setIsIntern] = useState(false)
-  const [isLawyer, setIsLawyer] = useState(false)
+  const [isLawyer, setIsLawyer] = useState(true)
 
-  // Translation states
-  const [translations, setTranslations] = useState<LawyerTranslation[]>([
-    { language: 'TR', name: '', title: '', bio: '' },
-    { language: 'EN', name: '', title: '', bio: '' }
+  const [translations, setTranslations] = useState<LawyerApiResponse['translations']>([
+    {
+      language: Language.TR,
+      name: '',
+      bio: '',
+      education: '',
+      languages: '',
+      practiceAreas: [],
+      bar: '',
+      phone: '',
+      email: ''
+    },
   ])
 
   const fetchLawyer = useCallback(async () => {
     try {
       setIsLoading(true)
       setError('')
-      
-      console.log('🔄 Fetching lawyer:', lawyerId)
+
       const response = await fetch(`/api/lawyers/${lawyerId}`)
-      
       if (!response.ok) {
-        throw new Error('Failed to fetch lawyer')
+        throw new Error('Avukat getirilemedi')
       }
-      
+
       const data = await response.json()
-      console.log('📥 Lawyer fetched:', data)
-      
-      const lawyerData = data.data
+      const lawyerData: LawyerApiResponse = data.data
       setLawyer(lawyerData)
-      
-      // Set form values
-      setName(lawyerData.name || '')
-      setTitle(lawyerData.title || '')
-      setBio(lawyerData.bio || '')
-      setEmail(lawyerData.email || '')
-      setPhone(lawyerData.phone || '')
-      setAddress(lawyerData.address || '')
+
       setImage(lawyerData.image || '')
-      setIsPartner(lawyerData.isPartner || false)
-      setIsFounder(lawyerData.isFounder || false)
-      setIsIntern(lawyerData.isIntern || false)
-      setIsLawyer(!lawyerData.isPartner && !lawyerData.isFounder && !lawyerData.isIntern)
-      
-      // Set translations
+      setImagePublicId(lawyerData.imagePublicId || '')
+      setIsPartner(Boolean(lawyerData.isPartner))
+      setIsFounder(Boolean(lawyerData.isFounder))
+      setIsIntern(Boolean(lawyerData.isIntern))
+      setIsLawyer(Boolean(lawyerData.isLawyer))
+
       if (lawyerData.translations && lawyerData.translations.length > 0) {
-        setTranslations(lawyerData.translations)
+        // Normalize each translation to ensure defaults exist
+        const normalized = lawyerData.translations.map((t) => ({
+          language: t.language,
+          name: t.name || '',
+          bio: t.bio || '',
+          education: t.education || '',
+          languages: t.languages || '',
+          practiceAreas: Array.isArray(t.practiceAreas) ? t.practiceAreas : [],
+          bar: t.bar || '',
+          phone: t.phone || '',
+          email: t.email || ''
+        }))
+
+        // Ensure both TR and EN exist for the form tabs
+        const languagesPresent = new Set(normalized.map(t => t.language))
+        if (!languagesPresent.has(Language.TR)) {
+          normalized.push({
+            language: Language.TR,
+            name: '', bio: '', education: '', languages: '', practiceAreas: [], bar: '', phone: '', email: ''
+          })
+        }
+        if (!languagesPresent.has(Language.EN)) {
+          normalized.push({
+            language: Language.EN,
+            name: '', bio: '', education: '', languages: '', practiceAreas: [], bar: '', phone: '', email: ''
+          })
+        }
+
+        setTranslations(normalized)
       }
-      
     } catch (err) {
-      console.error('❌ Error fetching lawyer:', err)
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      setError(err instanceof Error ? err.message : 'Bir hata oluştu')
     } finally {
       setIsLoading(false)
     }
-  }, [lawyerId, locale])
+  }, [lawyerId])
 
   useEffect(() => {
-    if (lawyerId) {
-      fetchLawyer()
-    }
+    if (lawyerId) fetchLawyer()
   }, [lawyerId, fetchLawyer])
 
   const handleSave = async () => {
@@ -123,67 +135,35 @@ export default function EditLawyerPage() {
       setIsSaving(true)
       setError('')
       setSuccess('')
-      
-      console.log('🔄 Saving lawyer...')
-      
+
       const payload = {
-        name,
-        title,
-        bio,
-        email,
-        phone,
-        address,
         image,
+        imagePublicId,
         isPartner,
         isFounder,
         isIntern,
         isLawyer,
         translations
       }
-      
-      console.log('📤 Sending payload:', payload)
-      
+
       const response = await fetch(`/api/lawyers/${lawyerId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       })
 
-      console.log('📥 Response status:', response.status)
-      
       if (!response.ok) {
         const errorData = await response.json()
-        console.error('❌ API Error:', errorData)
-        throw new Error(errorData.error || 'Failed to save lawyer')
+        throw new Error(errorData.error || 'Güncelleme başarısız')
       }
 
-      const result = await response.json()
-      console.log('✅ API Success:', result)
-      
       setSuccess('Avukat başarıyla güncellendi!')
-      
-      // Redirect to lawyers list after a short delay
-      setTimeout(() => {
-        router.push('/admin/lawyers')
-      }, 2000)
-      
+      setTimeout(() => router.push('/admin/lawyers'), 1200)
     } catch (err) {
-      console.error('❌ handleSave error:', err)
-      setError(err instanceof Error ? err.message : 'Failed to save lawyer')
+      setError(err instanceof Error ? err.message : 'Bir hata oluştu')
     } finally {
       setIsSaving(false)
     }
-  }
-
-  const updateTranslation = (index: number, field: keyof LawyerTranslation, value: string) => {
-    const newTranslations = [...translations]
-    newTranslations[index] = {
-      ...newTranslations[index],
-      [field]: value
-    }
-    setTranslations(newTranslations)
   }
 
   if (isLoading) {
@@ -199,9 +179,9 @@ export default function EditLawyerPage() {
 
   if (!lawyer) {
     return (
-      <div className="min-h-screen bg-background p-6">
+      <div className="min-h-screen bg-slate-950 p-6">
         <div className="max-w-4xl mx-auto">
-          <Alert className="border-red-200 bg-red-50 text-red-800">
+          <Alert className="border-red-800 bg-red-900/20 text-red-300">
             <AlertDescription>Avukat bulunamadı</AlertDescription>
           </Alert>
         </div>
@@ -210,37 +190,34 @@ export default function EditLawyerPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-4xl mx-auto space-y-6">
-        {/* Header */}
+    <div className="min-h-screen bg-slate-950 p-6">
+      <div className="max-w-4xl mx-auto space-y-8">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center space-x-4">
             <Button
-              variant="outline"
-              size="sm"
+              variant="ghost"
               onClick={() => router.back()}
-              className="flex items-center gap-2"
+              className="flex items-center text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft className="w-4 h-4 mr-2" />
               Geri
             </Button>
             <div>
-              <h1 className="text-3xl font-bold text-foreground">
-                Avukat Düzenle
+              <h1 className="text-3xl font-bold text-white flex items-center">
+                <User className="w-8 h-8 mr-3 text-pink-400" />
+                Avukatı Düzenle
               </h1>
-              <p className="text-muted-foreground">
-                {lawyer.name} - Bilgilerini düzenleyin
-              </p>
+              <p className="text-slate-400 mt-1">Varolan bilgileri düzenleyin</p>
             </div>
           </div>
           <Button
             onClick={handleSave}
             disabled={isSaving}
-            className="bg-green-600 hover:bg-green-700"
+            className="px-6 py-3 bg-pink-500 hover:bg-pink-600 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
           >
             {isSaving ? (
               <>
-                <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
                 Kaydediliyor...
               </>
             ) : (
@@ -252,293 +229,165 @@ export default function EditLawyerPage() {
           </Button>
         </div>
 
-        {/* Error Alert */}
         {error && (
-          <Alert className="border-red-200 bg-red-50 text-red-800">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
+          <div className="bg-red-900/20 border border-red-800 rounded-lg p-4">
+            <p className="text-red-400 text-center">{error}</p>
+          </div>
         )}
-
-        {/* Success Alert */}
         {success && (
-          <Alert className="border-green-200 bg-green-50 text-green-800">
-            <AlertDescription>{success}</AlertDescription>
-          </Alert>
+          <div className="bg-green-900/20 border border-green-800 rounded-lg p-4">
+            <p className="text-green-400 text-center">{success}</p>
+          </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Basic Information */}
-          <div className="lg:col-span-2 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="w-5 h-5" />
-                  Temel Bilgiler
-                </CardTitle>
-                <CardDescription>
-                  Avukatın temel bilgilerini düzenleyin
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Ad Soyad *</Label>
-                    <Input
-                      id="name"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="Ad Soyad"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="title">Ünvan</Label>
-                    <Input
-                      id="title"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      placeholder="Ünvan"
-                    />
-                  </div>
-                </div>
+        {/* Multilingual Content */}
+        <Card className="bg-slate-900/50 border-slate-700 backdrop-blur-sm">
+          <CardHeader className="border-b border-slate-700">
+            <CardTitle className="text-white flex items-center">
+              Çok Dilli Avukat Bilgileri
+            </CardTitle>
+            <CardDescription className="text-slate-400">Avukatın tüm bilgilerini Türkçe ve İngilizce olarak düzenleyin</CardDescription>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <MultilingualForm translations={translations} onTranslationsChange={setTranslations} />
+          </CardContent>
+        </Card>
 
-                <div className="space-y-2">
-                  <Label htmlFor="bio">Biyografi</Label>
-                  <Textarea
-                    id="bio"
-                    value={bio}
-                    onChange={(e) => setBio(e.target.value)}
-                    placeholder="Biyografi"
-                    rows={4}
-                  />
-                </div>
+        {/* Profile Image */}
+        <Card className="bg-slate-900/50 border-slate-700 backdrop-blur-sm">
+          <CardHeader className="border-b border-slate-700">
+            <CardTitle className="text-white flex items-center">
+              <Camera className="w-5 h-5 mr-2 text-pink-400" />
+              Profil Fotoğrafı
+            </CardTitle>
+            <CardDescription className="text-slate-400">Avukatın profil fotoğrafını güncelleyin</CardDescription>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <ImageUpload
+              value={image}
+              onChange={(url, publicId) => {
+                setImage(url)
+                setImagePublicId(publicId || '')
+              }}
+              folder="lawyers"
+              className="w-full"
+            />
+          </CardContent>
+        </Card>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email" className="flex items-center gap-2">
-                      <Mail className="w-4 h-4" />
-                      E-posta
-                    </Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="E-posta"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone" className="flex items-center gap-2">
-                      <Phone className="w-4 h-4" />
-                      Telefon
-                    </Label>
-                    <Input
-                      id="phone"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="Telefon"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="address" className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4" />
-                    Adres
-                  </Label>
-                  <Textarea
-                    id="address"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    placeholder="Adres"
-                    rows={2}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Translations */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Çeviriler</CardTitle>
-                <CardDescription>
-                  Farklı dillerdeki çevirileri düzenleyin
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {translations.map((translation, index) => (
-                  <div key={translation.language} className="space-y-3 p-4 border rounded-lg">
-                    <h4 className="font-medium text-foreground">
-                      {translation.language === 'TR' ? '🇹🇷 Türkçe' : '🇺🇸 English'}
-                    </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Ad Soyad</Label>
-                        <Input
-                          value={translation.name}
-                          onChange={(e) => updateTranslation(index, 'name', e.target.value)}
-                          placeholder="Ad Soyad"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Ünvan</Label>
-                        <Input
-                          value={translation.title}
-                          onChange={(e) => updateTranslation(index, 'title', e.target.value)}
-                          placeholder="Ünvan"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Biyografi</Label>
-                      <Textarea
-                        value={translation.bio}
-                        onChange={(e) => updateTranslation(index, 'bio', e.target.value)}
-                        placeholder="Biyografi"
-                        rows={3}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Image Upload */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Upload className="w-5 h-5" />
-                  Fotoğraf
-                </CardTitle>
-                <CardDescription>
-                  Avukat fotoğrafını yükleyin
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ImageUpload
-                  value={image}
-                  onChange={setImage}
-                  folder="lawyers"
+        {/* Special Attributes */}
+        <Card className="bg-slate-900/50 border-slate-700 backdrop-blur-sm">
+          <CardHeader className="border-b border-slate-700">
+            <CardTitle className="text-white flex items-center">
+              <Award className="w-5 h-5 mr-2 text-pink-400" />
+              Özellikler
+            </CardTitle>
+            <CardDescription className="text-slate-400">Avukatın özel niteliklerini seçin</CardDescription>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center p-4 bg-slate-800/50 rounded-lg border border-slate-700 hover:border-slate-600 transition-colors">
+                <input
+                  type="checkbox"
+                  id="isPartner"
+                  checked={isPartner}
+                  onChange={(e) => {
+                    const val = e.target.checked
+                    setIsPartner(val)
+                    if (val) {
+                      setIsFounder(false)
+                      setIsIntern(false)
+                      setIsLawyer(false)
+                    }
+                  }}
+                  className="w-4 h-4 text-pink-400 bg-slate-700 border-slate-600 rounded focus:ring-pink-400 focus:ring-2"
                 />
-              </CardContent>
-            </Card>
+                <label htmlFor="isPartner" className="ml-3 text-slate-200 font-medium">Ortak</label>
+              </div>
 
-            {/* Role Settings */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Özellikler</CardTitle>
-                <CardDescription>
-                  Avukatın özel niteliklerini seçin
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="isLawyer"
-                    checked={isLawyer}
-                    onCheckedChange={(checked) => {
-                      setIsLawyer(checked as boolean)
-                      if (checked) {
-                        setIsFounder(false)
-                        setIsPartner(false)
-                        setIsIntern(false)
-                      }
-                    }}
-                  />
-                  <Label htmlFor="isLawyer" className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-gray-500" />
-                    Avukat
-                  </Label>
-                </div>
+              <div className="flex items-center p-4 bg-slate-800/50 rounded-lg border border-slate-700 hover:border-slate-600 transition-colors">
+                <input
+                  type="checkbox"
+                  id="isFounder"
+                  checked={isFounder}
+                  onChange={(e) => {
+                    const val = e.target.checked
+                    setIsFounder(val)
+                    if (val) {
+                      setIsPartner(false)
+                      setIsIntern(false)
+                      setIsLawyer(false)
+                    }
+                  }}
+                  className="w-4 h-4 text-pink-400 bg-slate-700 border-slate-600 rounded focus:ring-pink-400 focus:ring-2"
+                />
+                <label htmlFor="isFounder" className="ml-3 text-slate-2 00 font-medium">Kurucu</label>
+              </div>
 
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="isPartner"
-                    checked={isPartner}
-                    onCheckedChange={(checked) => {
-                      setIsPartner(checked as boolean)
-                      if (checked) {
-                        setIsFounder(false)
-                        setIsIntern(false)
-                        setIsLawyer(false)
-                      }
-                    }}
-                  />
-                  <Label htmlFor="isPartner" className="flex items-center gap-2">
-                    <Star className="w-4 h-4 text-blue-500" />
-                    Ortak
-                  </Label>
-                </div>
+              <div className="flex items-center p-4 bg-slate-800/50 rounded-lg border border-slate-700 hover:border-slate-600 transition-colors">
+                <input
+                  type="checkbox"
+                  id="isIntern"
+                  checked={isIntern}
+                  onChange={(e) => {
+                    const val = e.target.checked
+                    setIsIntern(val)
+                    if (val) {
+                      setIsFounder(false)
+                      setIsPartner(false)
+                      setIsLawyer(false)
+                    }
+                  }}
+                  className="w-4 h-4 text-pink-400 bg-slate-700 border-slate-600 rounded focus:ring-pink-400 focus:ring-2"
+                />
+                <label htmlFor="isIntern" className="ml-3 text-slate-200 font-medium">Stajyer</label>
+              </div>
 
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="isFounder"
-                    checked={isFounder}
-                    onCheckedChange={(checked) => {
-                      setIsFounder(checked as boolean)
-                      if (checked) {
-                        setIsPartner(false)
-                        setIsIntern(false)
-                        setIsLawyer(false)
-                      }
-                    }}
-                  />
-                  <Label htmlFor="isFounder" className="flex items-center gap-2">
-                    <Crown className="w-4 h-4 text-yellow-500" />
-                    Kurucu
-                  </Label>
-                </div>
+              <div className="flex items-center p-4 bg-slate-800/50 rounded-lg border border-slate-700 hover:border-slate-600 transition-colors">
+                <input
+                  type="checkbox"
+                  id="isLawyer"
+                  checked={isLawyer}
+                  onChange={(e) => {
+                    const val = e.target.checked
+                    setIsLawyer(val)
+                    if (val) {
+                      setIsFounder(false)
+                      setIsPartner(false)
+                      setIsIntern(false)
+                    }
+                  }}
+                  className="w-4 h-4 text-pink-400 bg-slate-700 border-slate-600 rounded focus:ring-pink-400 focus:ring-2"
+                />
+                <label htmlFor="isLawyer" className="ml-3 text-slate-200 font-medium">Avukat</label>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="isIntern"
-                    checked={isIntern}
-                    onCheckedChange={(checked) => {
-                      setIsIntern(checked as boolean)
-                      if (checked) {
-                        setIsFounder(false)
-                        setIsPartner(false)
-                        setIsLawyer(false)
-                      }
-                    }}
-                  />
-                  <Label htmlFor="isIntern" className="flex items-center gap-2">
-                    <GraduationCap className="w-4 h-4 text-green-500" />
-                    Stajyer
-                  </Label>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Order */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Sıralama</CardTitle>
-                <CardDescription>
-                  Avukatın sıralama pozisyonu
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-primary">
-                    #{lawyer.order + 1}
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Sıralama değiştirmek için <br />
-                    <Link 
-                      href="/admin/lawyers/order-new" 
-                      className="text-primary hover:underline"
-                    >
-                      Sıralama sayfasına
-                    </Link> gidin
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+        {/* Order */}
+        <Card className="bg-slate-900/50 border-slate-700 backdrop-blur-sm">
+          <CardHeader className="border-b border-slate-700">
+            <CardTitle className="text-white">Sıralama</CardTitle>
+            <CardDescription className="text-slate-400">Avukatın sıralama pozisyonu</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-pink-400">
+                #{lawyer.order + 1}
+              </div>
+              <p className="text-sm text-slate-400 mt-1">
+                Sıralama değiştirmek için <br />
+                <Link 
+                  href="/admin/lawyers/order-new" 
+                  className="text-pink-400 hover:underline"
+                >
+                  Sıralama sayfasına
+                </Link> gidin
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

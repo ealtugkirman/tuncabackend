@@ -71,7 +71,6 @@ export async function PUT(
       excerpt,
       content,
       image,
-      category,
       isDark,
       published,
       language = DEFAULT_LANGUAGE,
@@ -85,7 +84,6 @@ export async function PUT(
         date,
         year,
         image,
-        category,
         isDark: isDark || false,
         published: published || false,
         translations: {

@@ -41,7 +41,7 @@ export const baseSEO = {
       'kurumsal hukuk',
       'birleşme devralma',
       'iş hukuku',
-      'ticaret hukuku',
+      'ticaret hukuku ve sermaye piyasaları',
       'sermaye piyasaları'
     ],
     EN: [
@@ -111,7 +111,7 @@ export async function generateHomepageSEO(): Promise<SEOData> {
         'Kurumsal Hukuk',
         'Birleşme ve Devralma',
         'İş Hukuku',
-        'Ticaret Hukuku',
+        'Ticaret Hukuku ve Sermaye Piyasaları',
         'Sermaye Piyasaları'
       ],
       employee: lawyers.map(lawyer => ({

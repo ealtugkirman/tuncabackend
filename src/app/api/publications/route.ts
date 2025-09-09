@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
-import { detectLanguage, DEFAULT_LANGUAGE, generateSlug, generateUniqueSlug } from '@/lib/i18n'
+import { DEFAULT_LANGUAGE, generateUniqueSlug } from '@/lib/i18n'
 import { Language } from '@prisma/client'
 
 // GET /api/publications - Get all publications
@@ -9,7 +9,6 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const year = searchParams.get('year')
-    const author = searchParams.get('author')
     const search = searchParams.get('search')
     const published = searchParams.get('published')
     const language = (searchParams.get('language') as Language) || DEFAULT_LANGUAGE
@@ -26,14 +25,13 @@ export async function GET(request: NextRequest) {
     let whereClause: any = {}
 
     if (year) {
-      whereClause.year = year
+      const parsedYear = parseInt(year as string, 10)
+      if (!Number.isNaN(parsedYear)) {
+        whereClause.year = parsedYear
+      }
     }
 
-    // removed: practiceArea, category
-
-    if (author) {
-      whereClause.author = { contains: author, mode: 'insensitive' }
-    }
+    // removed: practiceArea, category, author
 
     if (published !== null && published !== '') {
       whereClause.published = published === 'true'
@@ -61,29 +59,29 @@ export async function GET(request: NextRequest) {
       orderBy = { [sortBy]: sortOrder }
     }
 
-    const [publications, totalCount] = await Promise.all([
-      prisma.publication.findMany({
-        where: whereClause,
-        include: {
-          translations: {
-            where: { language }
-          },
-          lawyers: {
-            select: {
-              id: true,
-              image: true,
-              translations: {
-                where: { language }
-              }
+    // Run sequentially to avoid exhausting DB pool under load
+    const publications = await prisma.publication.findMany({
+      where: whereClause,
+      include: {
+        translations: {
+          where: { language }
+        },
+        lawyers: {
+          select: {
+            id: true,
+            image: true,
+            translations: {
+              where: { language }
             }
           }
-        },
-        orderBy: search ? { createdAt: sortOrder } : orderBy,
-        skip,
-        take: limit
-      }),
-      prisma.publication.count({ where: whereClause })
-    ])
+        }
+      },
+      orderBy: search ? { createdAt: sortOrder as any } : orderBy,
+      skip,
+      take: limit
+    })
+
+    const totalCount = await prisma.publication.count({ where: whereClause })
 
     // Transform to include translation data at root level
     const result = publications.map(publication => {
@@ -154,19 +152,19 @@ export async function POST(request: NextRequest) {
     const {
       date,
       year,
-      category,
       tags,
       published,
       lawyerId,
       lawyerIds = [],
       language = DEFAULT_LANGUAGE,
-      translations = []
+      translations = [],
+      image,
+      imagePublicId
     } = body
 
     console.log("🔍 Ayrıştırılan veriler:", {
       date,
       year,
-      category,
       tags,
       published,
       lawyerId,
@@ -194,9 +192,10 @@ export async function POST(request: NextRequest) {
       slug,
       date: new Date(date),
       year: parseInt(year),
-      category,
       tags: tagsArray,
       published: published || false,
+      image: image || null,
+      imagePublicId: imagePublicId || null,
       lawyers: {
         connect: finalLawyerIds.filter(Boolean).map((id: string) => ({ id }))
       },

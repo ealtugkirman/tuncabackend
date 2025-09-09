@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
-import { DEFAULT_LANGUAGE, generateSlug } from '@/lib/i18n'
+import { DEFAULT_LANGUAGE } from '@/lib/i18n'
 import { Language } from '@prisma/client'
 
 // GET /api/publications/[id] - Get single publication
@@ -79,13 +79,14 @@ export async function PUT(
       excerpt,
       content,
       practiceArea,
-      category,
       author,
       tags,
       published,
       lawyerId,
       language = DEFAULT_LANGUAGE,
-      translations = []
+      translations = [],
+      image,
+      imagePublicId
     } = body
 
     // Update or create translations
@@ -95,11 +96,12 @@ export async function PUT(
         date,
         year,
         practiceArea,
-        category,
         author,
         tags: tags || [],
         published: published || false,
         lawyerId,
+        image: image || null,
+        imagePublicId: imagePublicId || null,
         translations: {
           upsert: [
             // Main translation

@@ -179,7 +179,7 @@ export default function EditAnnouncementPage({ params }: EditAnnouncementPagePro
                 <option value="Sermaye Piyasaları">Sermaye Piyasaları</option>
                 <option value="Kurumsal Hukuk">Kurumsal Hukuk</option>
                 <option value="İş Hukuku">İş Hukuku</option>
-                <option value="Ticaret Hukuku">Ticaret Hukuku</option>
+                <option value="Ticaret Hukuku ve Sermaye Piyasaları">Ticaret Hukuku ve Sermaye Piyasaları</option>
                 <option value="Diğer">Diğer</option>
               </select>
               {errors.category && (

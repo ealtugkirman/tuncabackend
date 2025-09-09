@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
-import { detectLanguage, DEFAULT_LANGUAGE, generateSlug, generateUniqueSlug } from '@/lib/i18n'
+import { DEFAULT_LANGUAGE, generateUniqueSlug } from '@/lib/i18n'
 import { Language } from '@prisma/client'
 
 // GET /api/announcements - Get all announcements

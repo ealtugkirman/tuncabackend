@@ -198,7 +198,9 @@ model Publication {
   slug        String   @unique // URL-friendly identifier
   date        DateTime
   year        Int
-  category    String
+  image       String?
+  imagePublicId String?
+  // category removed
   tags        String[]
   published   Boolean  @default(false)
   createdAt   DateTime @default(now())

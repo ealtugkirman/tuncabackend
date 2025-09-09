@@ -90,27 +90,14 @@ export async function PUT(
     console.log('📥 Request body:', body)
     
     const {
-      name,
-      title,
-      bio,
-      email,
-      phone,
-      address,
       image,
+      imagePublicId,
       isPartner,
       isFounder,
       isIntern,
       isLawyer,
       translations
     } = body
-
-    // Validate required fields
-    if (!name || name.trim() === '') {
-      return NextResponse.json(
-        { error: 'Name is required' },
-        { status: 400 }
-      )
-    }
 
     // Check if lawyer exists
     const existingLawyer = await prisma.lawyer.findUnique({
@@ -130,13 +117,8 @@ export async function PUT(
     const updatedLawyer = await prisma.lawyer.update({
       where: { id: params.id },
       data: {
-        name: name.trim(),
-        title: title?.trim() || '',
-        bio: bio?.trim() || '',
-        email: email?.trim() || '',
-        phone: phone?.trim() || '',
-        address: address?.trim() || '',
         image: image || '',
+        imagePublicId: imagePublicId || undefined,
         isPartner: Boolean(isPartner),
         isFounder: Boolean(isFounder),
         isIntern: Boolean(isIntern),
@@ -160,13 +142,18 @@ export async function PUT(
 
       // Create new translations
       const translationData = translations
-        .filter(t => t.name && t.name.trim() !== '')
-        .map(t => ({
+        .filter((t: any) => t.name && String(t.name).trim() !== '')
+        .map((t: any) => ({
           lawyerId: params.id,
           language: t.language,
-          name: t.name.trim(),
-          title: t.title?.trim() || '',
-          bio: t.bio?.trim() || ''
+          name: String(t.name).trim(),
+          bio: t.bio ? String(t.bio).trim() : undefined,
+          education: t.education ? String(t.education).trim() : undefined,
+          languages: t.languages ? String(t.languages).trim() : undefined,
+          practiceAreas: Array.isArray(t.practiceAreas) ? t.practiceAreas : [],
+          bar: t.bar ? String(t.bar).trim() : undefined,
+          phone: t.phone ? String(t.phone).trim() : undefined,
+          email: t.email ? String(t.email).trim() : undefined
         }))
 
       if (translationData.length > 0) {
