@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
     "db:generate": "prisma generate",
@@ -13,6 +13,7 @@
     "db:migrate:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio",
     "db:seed": "tsx src/lib/seed.ts",
+    "import:lawyers": "tsx scripts/import-team-lawyers.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {

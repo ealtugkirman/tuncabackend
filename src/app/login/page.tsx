@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2 } from 'lucide-react'
+import { Gavel, Loader2 } from 'lucide-react'
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -64,11 +64,22 @@ export default function AdminLogin() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <Card>
+    <div className="admin-app flex min-h-screen items-center justify-center bg-background px-4 py-12 sm:px-6 lg:px-8">
+      <div className="w-full max-w-md space-y-8">
+        <div className="text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-border bg-card text-primary">
+            <Gavel className="h-7 w-7" />
+          </div>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+            The Digital Gavel
+          </p>
+          <p className="mt-1 text-lg font-semibold text-foreground">
+            Legal<span className="text-primary">Command</span>
+          </p>
+        </div>
+        <Card className="border-border/80 shadow-lg">
           <CardHeader>
-            <CardTitle className="text-2xl text-center">Admin Login</CardTitle>
+            <CardTitle className="text-center text-2xl">Admin login</CardTitle>
             <CardDescription className="text-center">
               Sign in to access the admin panel
             </CardDescription>

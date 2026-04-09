@@ -5,7 +5,7 @@ import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { GripVertical, Save, User, Crown, Star, GraduationCap } from 'lucide-react'
+import { GripVertical, Save, User, Crown, Star, GraduationCap, Scale } from 'lucide-react'
 import { useLanguage } from '@/contexts/LanguageContext'
 
 interface Lawyer {
@@ -16,6 +16,7 @@ interface Lawyer {
   isPartner: boolean
   isFounder: boolean
   isIntern: boolean
+  isConsultant?: boolean
   order: number
 }
 
@@ -92,16 +93,20 @@ export function SimpleLawyerOrder({ lawyers, onSave }: SimpleLawyerOrderProps) {
   }
 
   const getRoleIcon = (lawyer: Lawyer) => {
-    if (lawyer.isFounder) return <Crown className="w-4 h-4 text-yellow-500" />
-    if (lawyer.isPartner) return <Star className="w-4 h-4 text-blue-500" />
     if (lawyer.isIntern) return <GraduationCap className="w-4 h-4 text-green-500" />
+    if (lawyer.isConsultant) return <Scale className="w-4 h-4 text-violet-500" />
+    if (lawyer.isFounder && lawyer.isPartner) return <Crown className="w-4 h-4 text-yellow-500" />
+    if (lawyer.isFounder) return <Crown className="w-4 h-4 text-amber-500" />
+    if (lawyer.isPartner) return <Star className="w-4 h-4 text-blue-500" />
     return <User className="w-4 h-4 text-gray-500" />
   }
 
   const getRoleText = (lawyer: Lawyer) => {
-    if (lawyer.isFounder) return 'Kurucu'
+    if (lawyer.isIntern) return 'Stajyer avukat'
+    if (lawyer.isConsultant) return 'Danışman'
+    if (lawyer.isFounder && lawyer.isPartner) return 'Kurucu ortak'
     if (lawyer.isPartner) return 'Ortak'
-    if (lawyer.isIntern) return 'Stajyer'
+    if (lawyer.isFounder) return 'Kurucu ortak'
     return 'Avukat'
   }
 

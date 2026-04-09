@@ -5,9 +5,10 @@ import { getCurrentUser } from '@/lib/auth-utils'
 // GET /api/contact/[id] - Get single contact message (admin only)
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const user = await getCurrentUser()
     if (!user || (user.role !== 'ADMIN' && user.role !== 'SUPERADMIN')) {
       return NextResponse.json(
@@ -17,7 +18,7 @@ export async function GET(
     }
 
     const message = await prisma.contactMessage.findUnique({
-      where: { id: params.id }
+      where: { id }
     })
 
     if (!message) {
@@ -40,9 +41,10 @@ export async function GET(
 // PUT /api/contact/[id] - Update contact message status (admin only)
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const user = await getCurrentUser()
     if (!user || (user.role !== 'ADMIN' && user.role !== 'SUPERADMIN')) {
       return NextResponse.json(
@@ -54,15 +56,15 @@ export async function PUT(
     const body = await request.json()
     const { status } = body
 
-    const updateData: any = { status }
-    
+    const updateData: { status: string; repliedAt?: Date } = { status }
+
     if (status === 'REPLIED') {
       updateData.repliedAt = new Date()
     }
 
     const message = await prisma.contactMessage.update({
-      where: { id: params.id },
-      data: updateData
+      where: { id },
+      data: updateData as import('@prisma/client').Prisma.ContactMessageUpdateInput,
     })
 
     return NextResponse.json(message)
@@ -78,9 +80,10 @@ export async function PUT(
 // DELETE /api/contact/[id] - Delete contact message (admin only)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const user = await getCurrentUser()
     if (!user || (user.role !== 'ADMIN' && user.role !== 'SUPERADMIN')) {
       return NextResponse.json(
@@ -90,7 +93,7 @@ export async function DELETE(
     }
 
     await prisma.contactMessage.delete({
-      where: { id: params.id }
+      where: { id }
     })
 
     return NextResponse.json({ message: 'Contact message deleted successfully' })

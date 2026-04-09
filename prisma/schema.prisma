@@ -39,6 +39,7 @@ enum PositionType {
 enum Language {
   TR
   EN
+  RU
 }
 
 // Site settings and language management
@@ -77,10 +78,12 @@ model Lawyer {
   slug          String   @unique // URL-friendly identifier
   image         String?
   imagePublicId String?
+  linkedinUrl   String?
   isPartner     Boolean  @default(false)
   isFounder     Boolean  @default(false)
   isIntern      Boolean  @default(false)
   isLawyer      Boolean  @default(true)
+  isConsultant  Boolean  @default(false)
   order         Int      @default(0) // Sıralama için order field
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -118,22 +121,27 @@ model LawyerTranslation {
 
 // Announcements
 model Announcement {
-  id            String   @id @default(cuid())
-  slug          String   @unique // URL-friendly identifier
-  date          DateTime
-  year          Int
-  image         String?
-  imagePublicId String?
-  isDark        Boolean  @default(false)
-  published     Boolean  @default(false)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                String   @id @default(cuid())
+  slug              String   @unique // URL-friendly identifier
+  date              DateTime
+  year              Int
+  image             String?
+  imagePublicId     String?
+  isDark            Boolean  @default(false)
+  published         Boolean  @default(false)
+  /// Canonical key from announcement-practice-areas (e.g. bankacilik-ve-finans-hukuku)
+  practiceAreaSlug  String   @default("")
+  /// Legacy / display category (optional; e.g. filter labels)
+  category          String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   // Relations
   lawyerId      String?
-  lawyer        Lawyer?  @relation(fields: [lawyerId], references: [id])
+  lawyer        Lawyer?  @relation(fields: [lawyerId], references: [id], onDelete: SetNull)
   translations AnnouncementTranslation[]
 
+  @@index([practiceAreaSlug])
   @@map("announcements")
 }
 
@@ -202,6 +210,8 @@ model Publication {
   imagePublicId String?
   // category removed
   tags        String[]
+  /// Canonical slugs from announcement-practice-areas (multi-select)
+  practiceAreaSlugs String[] @default([])
   published   Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

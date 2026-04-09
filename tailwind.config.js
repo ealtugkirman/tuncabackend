@@ -51,6 +51,17 @@ module.exports = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        admin: {
+          bg: "#0B0E14",
+          surface: "#161B22",
+          accent: "#4DABF7",
+          glow: "#00D1FF",
+          muted: "#8B949E",
+        },
+      },
+      boxShadow: {
+        "admin-glow": "0 0 24px -4px rgba(77, 171, 247, 0.35)",
+        "fab": "0 4px 24px rgba(0, 209, 255, 0.35)",
       },
       borderRadius: {
         lg: "var(--radius)",

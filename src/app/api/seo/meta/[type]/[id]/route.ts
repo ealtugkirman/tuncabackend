@@ -10,26 +10,27 @@ import {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { type: string; id: string } }
+  { params }: { params: Promise<{ type: string; id: string }> }
 ) {
   try {
+    const { type, id } = await params
     let seoData
 
-    switch (params.type) {
+    switch (type) {
       case 'homepage':
         seoData = await generateHomepageSEO()
         break
       case 'lawyer':
-        seoData = await generateLawyerSEO(params.id)
+        seoData = await generateLawyerSEO(id)
         break
       case 'announcement':
-        seoData = await generateAnnouncementSEO(params.id)
+        seoData = await generateAnnouncementSEO(id)
         break
       case 'event':
-        seoData = await generateEventSEO(params.id)
+        seoData = await generateEventSEO(id)
         break
       case 'publication':
-        seoData = await generatePublicationSEO(params.id)
+        seoData = await generatePublicationSEO(id)
         break
       default:
         return NextResponse.json(

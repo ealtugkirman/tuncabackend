@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
-import { detectLanguage, DEFAULT_LANGUAGE, generateSlug, generateUniqueSlug } from '@/lib/i18n'
+import { DEFAULT_LANGUAGE, generateUniqueSlug, parseLanguageParam } from '@/lib/i18n'
 import { Language } from '@prisma/client'
 
 // GET /api/events - Get all events
@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     const eventType = searchParams.get('eventType')
     const search = searchParams.get('search')
     const published = searchParams.get('published')
-    const language = (searchParams.get('language') as Language) || DEFAULT_LANGUAGE
+    const language = parseLanguageParam(searchParams.get('language'))
     
     // Pagination parameters
     const page = parseInt(searchParams.get('page') || '1')

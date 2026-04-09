@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
-import { DEFAULT_LANGUAGE, generateUniqueSlug } from '@/lib/i18n'
+import { DEFAULT_LANGUAGE, generateUniqueSlug, parseLanguageParam } from '@/lib/i18n'
 import { Language } from '@prisma/client'
+import {
+  isValidAnnouncementPracticeAreaSlug,
+  sanitizePublicationPracticeAreaSlugs,
+} from '@/lib/announcement-practice-areas'
 
 // GET /api/publications - Get all publications
 export async function GET(request: NextRequest) {
@@ -11,7 +15,9 @@ export async function GET(request: NextRequest) {
     const year = searchParams.get('year')
     const search = searchParams.get('search')
     const published = searchParams.get('published')
-    const language = (searchParams.get('language') as Language) || DEFAULT_LANGUAGE
+    const practiceAreaParam =
+      searchParams.get('practiceArea') ?? searchParams.get('alan')
+    const language = parseLanguageParam(searchParams.get('language'))
     
     // Pagination parameters
     const page = parseInt(searchParams.get('page') || '1')
@@ -35,6 +41,10 @@ export async function GET(request: NextRequest) {
 
     if (published !== null && published !== '') {
       whereClause.published = published === 'true'
+    }
+
+    if (practiceAreaParam && isValidAnnouncementPracticeAreaSlug(practiceAreaParam)) {
+      whereClause.practiceAreaSlugs = { has: practiceAreaParam }
     }
 
     // Search in translations
@@ -159,7 +169,8 @@ export async function POST(request: NextRequest) {
       language = DEFAULT_LANGUAGE,
       translations = [],
       image,
-      imagePublicId
+      imagePublicId,
+      practiceAreaSlugs: rawPracticeAreaSlugs,
     } = body
 
     console.log("🔍 Ayrıştırılan veriler:", {
@@ -181,6 +192,8 @@ export async function POST(request: NextRequest) {
     const finalLawyerIds = lawyerId ? [lawyerId] : lawyerIds
     console.log("👥 Avukat ID'leri:", finalLawyerIds)
 
+    const practiceAreaSlugs = sanitizePublicationPracticeAreaSlugs(rawPracticeAreaSlugs)
+
     // Generate slug from first translation or fallback
     const firstTranslation = translations[0]
     const slug = firstTranslation ? generateUniqueSlug(firstTranslation.title, firstTranslation.language) : generateUniqueSlug('publication', language)
@@ -196,6 +209,7 @@ export async function POST(request: NextRequest) {
       published: published || false,
       image: image || null,
       imagePublicId: imagePublicId || null,
+      practiceAreaSlugs,
       lawyers: {
         connect: finalLawyerIds.filter(Boolean).map((id: string) => ({ id }))
       },

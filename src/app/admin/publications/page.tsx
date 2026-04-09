@@ -15,7 +15,9 @@ import {
   ChevronRight,
   Calendar,
   Tag,
+  Layers,
 } from "lucide-react"
+import { ANNOUNCEMENT_PRACTICE_AREAS } from "@/lib/announcement-practice-areas"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -50,7 +52,8 @@ export default function AdminPublicationsPage() {
   // Filter states
   const [search, setSearch] = useState("")
   const [category, setCategory] = useState("all")
-  const [year, setYear] = useState("all")
+  /** "all" | practice area slug */
+  const [practiceArea, setPracticeArea] = useState("all")
   const [published, setPublished] = useState("all")
   const [sortBy, setSortBy] = useState("createdAt")
   const [sortOrder, setSortOrder] = useState("desc")
@@ -69,7 +72,7 @@ export default function AdminPublicationsPage() {
 
       if (search) params.append("search", search)
       if (category !== "all") params.append("category", category)
-      if (year !== "all") params.append("year", year)
+      if (practiceArea !== "all") params.append("alan", practiceArea)
       if (published !== "all") params.append("published", published)
 
       const response = await fetch(`/api/publications?${params}`)
@@ -88,7 +91,7 @@ export default function AdminPublicationsPage() {
   useEffect(() => {
     fetchPublications()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, search, category, year, published, sortBy, sortOrder])
+  }, [currentPage, search, category, practiceArea, published, sortBy, sortOrder])
 
   const handleSearch = (value: string) => {
     setSearch(value)
@@ -102,8 +105,8 @@ export default function AdminPublicationsPage() {
       case "category":
         setCategory(apiValue)
         break
-      case "year":
-        setYear(apiValue)
+      case "practiceArea":
+        setPracticeArea(value === "all" ? "all" : value)
         break
       case "published":
         setPublished(apiValue)
@@ -121,7 +124,7 @@ export default function AdminPublicationsPage() {
   const clearFilters = () => {
     setSearch("")
     setCategory("all")
-    setYear("all")
+    setPracticeArea("all")
     setPublished("all")
     setSortBy("createdAt")
     setSortOrder("desc")
@@ -258,24 +261,6 @@ export default function AdminPublicationsPage() {
 
           <div className="space-y-3">
             <label className="text-sm font-medium text-card-foreground flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-primary" />
-              Yıl
-            </label>
-            <Select value={year} onValueChange={(value) => handleFilterChange("year", value)}>
-              <SelectTrigger className="bg-input border-border focus:border-primary">
-                <SelectValue placeholder="Tüm yıllar" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tüm yıllar</SelectItem>
-                <SelectItem value="2024">2024</SelectItem>
-                <SelectItem value="2023">2023</SelectItem>
-                <SelectItem value="2022">2022</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-3">
-            <label className="text-sm font-medium text-card-foreground flex items-center gap-2">
               <Eye className="w-4 h-4 text-primary" />
               Durum
             </label>
@@ -287,6 +272,29 @@ export default function AdminPublicationsPage() {
                 <SelectItem value="all">Tüm durumlar</SelectItem>
                 <SelectItem value="true">Yayında</SelectItem>
                 <SelectItem value="false">Taslak</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-3">
+            <label className="text-sm font-medium text-card-foreground flex items-center gap-2">
+              <Layers className="w-4 h-4 text-primary" />
+              Çalışma alanı
+            </label>
+            <Select
+              value={practiceArea}
+              onValueChange={(value) => handleFilterChange("practiceArea", value)}
+            >
+              <SelectTrigger className="bg-input border-border focus:border-primary">
+                <SelectValue placeholder="Tüm alanlar" />
+              </SelectTrigger>
+              <SelectContent className="max-h-72">
+                <SelectItem value="all">Tüm alanlar</SelectItem>
+                {ANNOUNCEMENT_PRACTICE_AREAS.map((area) => (
+                  <SelectItem key={area.slug} value={area.slug}>
+                    {area.tr}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

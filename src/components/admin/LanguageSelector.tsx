@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Language, getLanguageName } from '@/lib/i18n'
+import { Language } from '@prisma/client'
+import { CONTENT_LANGUAGES, getLanguageName } from '@/lib/i18n'
 import { Globe, Check } from 'lucide-react'
 
 interface LanguageSelectorProps {
@@ -16,7 +17,7 @@ export function LanguageSelector({
   className = '' 
 }: LanguageSelectorProps) {
   const [isOpen, setIsOpen] = useState(false)
-  const languages: Language[] = ['TR', 'EN']
+  const languages = CONTENT_LANGUAGES
 
   return (
     <div className={`relative ${className}`}>

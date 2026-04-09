@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
-import { DEFAULT_LANGUAGE, generateUniqueSlug } from '@/lib/i18n'
+import { DEFAULT_LANGUAGE, generateUniqueSlug, parseLanguageParam } from '@/lib/i18n'
 import { Language } from '@prisma/client'
+import { isValidAnnouncementPracticeAreaSlug } from '@/lib/announcement-practice-areas'
 
 // GET /api/announcements - Get all announcements
 export async function GET(request: NextRequest) {
@@ -10,9 +11,11 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const search = searchParams.get('search')
     const published = searchParams.get('published')
-    const language = (searchParams.get('language') as Language) || DEFAULT_LANGUAGE
+    const language = parseLanguageParam(searchParams.get('language'))
     const yearParam = searchParams.get('year')
-    
+    const practiceAreaParam =
+      searchParams.get('practiceArea') ?? searchParams.get('alan')
+
     // Pagination parameters
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '10')
@@ -49,6 +52,10 @@ export async function GET(request: NextRequest) {
       if (dateTo) {
         whereClause.createdAt.lte = new Date(dateTo)
       }
+    }
+
+    if (practiceAreaParam && isValidAnnouncementPracticeAreaSlug(practiceAreaParam)) {
+      whereClause.practiceAreaSlug = practiceAreaParam
     }
 
     // Search in translations
@@ -113,11 +120,6 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error('Error fetching announcements:', error)
-    console.error('Error details:', {
-      message: error.message,
-      stack: error.stack,
-      whereClause
-    })
     return NextResponse.json(
       { error: 'Failed to fetch announcements', details: error.message },
       { status: 500 }
@@ -142,8 +144,29 @@ export async function POST(request: NextRequest) {
       image,
       isDark,
       published,
-      translations = []
+      practiceAreaSlug,
+      category,
+      translations = [],
+      lawyerId: lawyerIdRaw,
     } = body
+
+    const lawyerId =
+      lawyerIdRaw != null && String(lawyerIdRaw).trim() !== ''
+        ? String(lawyerIdRaw).trim()
+        : null
+    if (lawyerId) {
+      const lawyer = await prisma.lawyer.findUnique({ where: { id: lawyerId } })
+      if (!lawyer) {
+        return NextResponse.json({ error: 'Seçilen avukat bulunamadı' }, { status: 400 })
+      }
+    }
+
+    if (!practiceAreaSlug || !isValidAnnouncementPracticeAreaSlug(practiceAreaSlug)) {
+      return NextResponse.json(
+        { error: 'Geçerli bir çalışma alanı (practiceAreaSlug) seçilmelidir' },
+        { status: 400 }
+      )
+    }
 
     // Generate unique slug from first translation or fallback
     const firstTranslation = translations.find(t => t.title && t.title.trim())
@@ -157,6 +180,9 @@ export async function POST(request: NextRequest) {
         image,
         isDark: isDark || false,
         published: published || false,
+        practiceAreaSlug,
+        ...(lawyerId ? { lawyerId } : {}),
+        ...(category != null && category !== '' ? { category } : {}),
         translations: {
           create: translations
             .filter((translation: any) => translation.title && translation.title.trim())

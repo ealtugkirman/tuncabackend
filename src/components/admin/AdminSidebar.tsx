@@ -13,11 +13,7 @@ import {
   Briefcase,
   Newspaper,
   LogOut,
-  User,
-  Upload,
-  Search,
-  FileText,
-  ArrowUpDown
+  Hexagon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -30,22 +26,23 @@ interface AdminSidebarProps {
   }
 }
 
+function isNavActive(href: string, pathname: string) {
+  if (href === '/admin') return pathname === '/admin'
+  return pathname === href || pathname.startsWith(`${href}/`)
+}
+
 export default function AdminSidebar({ user }: AdminSidebarProps) {
   const pathname = usePathname()
 
   const navigation = [
-    { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-    { name: 'Avukatlar', href: '/admin/lawyers', icon: Users },
-    { name: 'Avukat Sıralama', href: '/admin/lawyers/order-new', icon: ArrowUpDown },
-    { name: 'Duyurular', href: '/admin/announcements', icon: Megaphone },
-    { name: 'Etkinlikler', href: '/admin/events', icon: Calendar },
-    { name: 'Yayınlar', href: '/admin/publications', icon: BookOpen },
-    { name: 'İletişim', href: '/admin/contact', icon: Mail },
-    { name: 'Kariyer', href: '/admin/career', icon: Briefcase },
-    { name: 'Bülten', href: '/admin/newsletter', icon: Newspaper },
-    { name: 'Upload Test', href: '/admin/test-upload', icon: Upload },
-    { name: 'SEO Test', href: '/admin/seo-test', icon: Search },
-    { name: 'Rich Text Test', href: '/admin/rich-text-test', icon: FileText },
+    { name: 'Command', href: '/admin', icon: LayoutDashboard },
+    { name: 'Lawyers', href: '/admin/lawyers', icon: Users },
+    { name: 'Announcements', href: '/admin/announcements', icon: Megaphone },
+    { name: 'Events', href: '/admin/events', icon: Calendar },
+    { name: 'Publications', href: '/admin/publications', icon: BookOpen },
+    { name: 'Contact', href: '/admin/contact', icon: Mail },
+    { name: 'Careers', href: '/admin/career', icon: Briefcase },
+    { name: 'Newsletter', href: '/admin/newsletter', icon: Newspaper },
   ]
 
   const handleSignOut = () => {
@@ -53,58 +50,66 @@ export default function AdminSidebar({ user }: AdminSidebarProps) {
   }
 
   return (
-    <div className="w-64 bg-card border-r border-border shadow-lg">
-      <div className="p-6">
-        <h2 className="text-xl font-bold text-foreground">Admin Panel</h2>
-        <div className="mt-4 flex items-center space-x-3">
-          <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-            <User className="w-5 h-5 text-primary-foreground" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-foreground">{user.name}</p>
-            <p className="text-xs text-muted-foreground">{user.role}</p>
+    <aside className="flex h-screen w-[15.5rem] shrink-0 flex-col border-r border-border bg-card">
+      <div className="border-b border-border px-4 py-5">
+        <div className="flex items-center gap-2.5">
+          <Hexagon className="h-5 w-5 shrink-0 text-primary" strokeWidth={1.5} />
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-foreground">Sovereign</p>
+            <p className="text-[10px] text-muted-foreground">Intelligence v2.4</p>
           </div>
         </div>
       </div>
 
-      <nav className="mt-6">
-        <div className="px-3 space-y-1">
-          {navigation.map((item) => {
-            const isActive = pathname === item.href
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={cn(
-                  'group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
-                  isActive
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                )}
-              >
-                <item.icon
-                  className={cn(
-                    'mr-3 h-5 w-5 flex-shrink-0',
-                    isActive ? 'text-primary-foreground' : 'text-muted-foreground group-hover:text-accent-foreground'
-                  )}
+      <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 py-3">
+        {navigation.map((item) => {
+          const active = isNavActive(item.href, pathname)
+          return (
+            <Link
+              key={item.name}
+              href={item.href}
+              className={cn(
+                'relative flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors',
+                active
+                  ? 'bg-accent text-foreground'
+                  : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground'
+              )}
+            >
+              {active && (
+                <span
+                  className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-r-sm bg-primary"
+                  aria-hidden
                 />
-                {item.name}
-              </Link>
-            )
-          })}
-        </div>
+              )}
+              <item.icon className="h-[17px] w-[17px] shrink-0 opacity-90" />
+              {item.name}
+            </Link>
+          )
+        })}
       </nav>
 
-      <div className="absolute bottom-0 w-64 p-4">
+      <div className="space-y-2 border-t border-border p-3">
+        <p className="px-1 text-[10px] text-muted-foreground">
+          <span className="text-primary">●</span> Operational
+        </p>
+        <div className="flex items-center gap-2 px-1">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border bg-background text-[10px] font-medium text-muted-foreground">
+            {user.name.slice(0, 2).toUpperCase()}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs font-medium text-foreground">{user.name}</p>
+          </div>
+        </div>
         <Button
           variant="ghost"
+          size="sm"
           onClick={handleSignOut}
-          className="w-full justify-start"
+          className="h-8 w-full justify-start gap-2 px-2 text-xs text-muted-foreground hover:text-foreground"
         >
-          <LogOut className="mr-3 h-5 w-5" />
-          Sign out
+          <LogOut className="h-3.5 w-3.5" />
+          Logout
         </Button>
       </div>
-    </div>
+    </aside>
   )
 }

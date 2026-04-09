@@ -3,10 +3,11 @@ import { generatePublicationSEO } from '@/lib/seo'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const seoData = await generatePublicationSEO(params.id)
+    const { id } = await params
+    const seoData = await generatePublicationSEO(id)
     return NextResponse.json(seoData)
   } catch (error) {
     console.error('Error generating publication SEO:', error)

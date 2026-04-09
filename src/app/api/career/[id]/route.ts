@@ -5,9 +5,10 @@ import { getCurrentUser } from '@/lib/auth-utils'
 // GET /api/career/[id] - Get single career application (admin only)
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const user = await getCurrentUser()
     if (!user || (user.role !== 'ADMIN' && user.role !== 'SUPERADMIN')) {
       return NextResponse.json(
@@ -17,7 +18,7 @@ export async function GET(
     }
 
     const application = await prisma.careerApplication.findUnique({
-      where: { id: params.id }
+      where: { id }
     })
 
     if (!application) {
@@ -40,9 +41,10 @@ export async function GET(
 // PUT /api/career/[id] - Update career application status (admin only)
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const user = await getCurrentUser()
     if (!user || (user.role !== 'ADMIN' && user.role !== 'SUPERADMIN')) {
       return NextResponse.json(
@@ -54,18 +56,16 @@ export async function PUT(
     const body = await request.json()
     const { status } = body
 
-    const updateData: any = { status }
-    
+    const updateData: { status: string; reviewedAt?: Date } = { status }
+
     if (status === 'REVIEWED' || status === 'ACCEPTED' || status === 'REJECTED') {
       updateData.reviewedAt = new Date()
     }
 
     const application = await prisma.careerApplication.update({
-      where: { id: params.id },
-      data: updateData
+      where: { id },
+      data: updateData as import('@prisma/client').Prisma.CareerApplicationUpdateInput,
     })
-
-    // TODO: Send email notification to applicant about status change
 
     return NextResponse.json(application)
   } catch (error) {
@@ -80,9 +80,10 @@ export async function PUT(
 // DELETE /api/career/[id] - Delete career application (admin only)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const user = await getCurrentUser()
     if (!user || (user.role !== 'ADMIN' && user.role !== 'SUPERADMIN')) {
       return NextResponse.json(
@@ -92,7 +93,7 @@ export async function DELETE(
     }
 
     await prisma.careerApplication.delete({
-      where: { id: params.id }
+      where: { id }
     })
 
     return NextResponse.json({ message: 'Career application deleted successfully' })

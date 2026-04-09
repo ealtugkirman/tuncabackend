@@ -1,6 +1,7 @@
 import { getCurrentUser } from '@/lib/auth-utils'
 import AdminSidebar from '@/components/admin/AdminSidebar'
-import { SimpleLanguageSwitcher } from '@/components/SimpleLanguageSwitcher'
+import AdminHeader from '@/components/admin/AdminHeader'
+import Link from 'next/link'
 
 export default async function AdminLayout({
   children,
@@ -8,32 +9,36 @@ export default async function AdminLayout({
   children: React.ReactNode
 }) {
   const user = await getCurrentUser()
-  
+
   if (!user || (user.role !== 'ADMIN' && user.role !== 'SUPERADMIN')) {
-            return (
-          <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-            <div className="text-center">
-              <h1 className="text-2xl font-bold text-slate-100 mb-4">Access Denied</h1>
-              <p className="text-slate-400">You don&apos;t have permission to access this page.</p>
-              <a href="/login" className="mt-4 inline-block btn-primary">
-                Go to Login
-              </a>
-            </div>
-          </div>
-        )
+    return (
+      <div className="admin-app flex min-h-screen items-center justify-center bg-background px-4">
+        <div className="max-w-md rounded-xl border border-border bg-card p-8 text-center shadow-lg">
+          <h1 className="mb-2 text-2xl font-bold text-foreground">Access denied</h1>
+          <p className="text-muted-foreground">
+            You don&apos;t have permission to access this page.
+          </p>
+          <Link
+            href="/login"
+            className="mt-6 inline-flex rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+          >
+            Go to login
+          </Link>
+        </div>
+      </div>
+    )
   }
-  
+
   return (
-    <div className="min-h-screen bg-background">
-      <div className="flex">
+    <div className="admin-app min-h-screen bg-background text-foreground">
+      <div className="flex min-h-screen">
         <AdminSidebar user={user} />
-        <main className="flex-1 p-6">
-          {/* Language Switcher */}
-          <div className="mb-4 flex justify-end">
-            <SimpleLanguageSwitcher />
-          </div>
-          {children}
-        </main>
+        <div className="relative flex min-h-screen min-w-0 flex-1 flex-col">
+          <AdminHeader user={user} />
+          <main className="relative flex-1 overflow-x-hidden p-4 md:p-6 lg:p-8">
+            {children}
+          </main>
+        </div>
       </div>
     </div>
   )

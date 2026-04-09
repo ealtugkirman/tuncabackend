@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
-import { detectLanguage, DEFAULT_LANGUAGE, generateSlug } from '@/lib/i18n'
+import { DEFAULT_LANGUAGE, generateSlug, parseLanguageParam } from '@/lib/i18n'
 import { Language } from '@prisma/client'
+import {
+  expandSlugForPracticeAreaFilter,
+  normalizeLawyerPracticeAreaSlug,
+  normalizeLawyerPracticeAreaSlugs,
+} from '@/lib/lawyer-practice-areas'
+import { resolveLawyerFlagsFromBody } from '@/lib/lawyer-position'
 
 // GET /api/lawyers - Get all lawyers
 export async function GET(request: NextRequest) {
@@ -10,7 +16,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const type = searchParams.get('type') // partners, interns, all
     const practiceArea = searchParams.get('practiceArea')
-    const language = (searchParams.get('language') as Language) || DEFAULT_LANGUAGE
+    const language = parseLanguageParam(searchParams.get('language'))
     
     // Pagination parameters
     const page = parseInt(searchParams.get('page') || '1')
@@ -29,18 +35,14 @@ export async function GET(request: NextRequest) {
     const isFounder = searchParams.get('isFounder')
     const isPartner = searchParams.get('isPartner')
 
-    let whereClause: any = {}
+    const whereClause: any = {}
 
     if (type === 'partners') {
       whereClause.isPartner = true
     } else if (type === 'interns') {
       whereClause.isIntern = true
-    }
-
-    if (practiceArea) {
-      whereClause.practiceAreas = {
-        has: practiceArea
-      }
+    } else if (type === 'consultants') {
+      whereClause.isConsultant = true
     }
 
     if (isFounder !== null && isFounder !== '') {
@@ -51,20 +53,40 @@ export async function GET(request: NextRequest) {
       whereClause.isPartner = isPartner === 'true'
     }
 
-    // Search in translations
-    if (search) {
-      whereClause.translations = {
-        some: {
-          language,
-          OR: [
-            { name: { contains: search, mode: 'insensitive' } },
-            { bio: { contains: search, mode: 'insensitive' } },
-            { education: { contains: search, mode: 'insensitive' } },
-            { languages: { contains: search, mode: 'insensitive' } },
-            { bar: { contains: search, mode: 'insensitive' } }
-          ]
-        }
-      }
+    const andConditions: any[] = []
+
+    if (practiceArea) {
+      const variants = expandSlugForPracticeAreaFilter(
+        normalizeLawyerPracticeAreaSlug(practiceArea)
+      )
+      andConditions.push({
+        translations: {
+          some: {
+            OR: variants.map((v) => ({ practiceAreas: { has: v } })),
+          },
+        },
+      })
+    }
+
+    if (search && search.trim()) {
+      andConditions.push({
+        translations: {
+          some: {
+            language,
+            OR: [
+              { name: { contains: search, mode: 'insensitive' } },
+              { bio: { contains: search, mode: 'insensitive' } },
+              { education: { contains: search, mode: 'insensitive' } },
+              { languages: { contains: search, mode: 'insensitive' } },
+              { bar: { contains: search, mode: 'insensitive' } },
+            ],
+          },
+        },
+      })
+    }
+
+    if (andConditions.length > 0) {
+      whereClause.AND = andConditions
     }
 
     // Build orderBy clause
@@ -93,19 +115,20 @@ export async function GET(request: NextRequest) {
     ])
 
     // Transform to include translation data at root level
-    const result = lawyers.map(lawyer => {
-      const translation = lawyer.translations[0]
+    const result = lawyers.map((lawyer) => {
+      const translation =
+        lawyer.translations.find((t) => t.language === language) ?? lawyer.translations[0]
       return {
         ...lawyer,
         name: translation?.name || '',
         bio: translation?.bio || '',
         education: translation?.education || '',
         languages: translation?.languages || '',
-        practiceAreas: translation?.practiceAreas || [],
+        practiceAreas: normalizeLawyerPracticeAreaSlugs(translation?.practiceAreas || []),
         bar: translation?.bar || '',
         phone: translation?.phone || '',
         email: translation?.email || '',
-        translations: undefined // Remove translations from response
+        translations: undefined, // Remove translations from response
       }
     })
 
@@ -146,29 +169,31 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const {
-      image,
-      imagePublicId,
-      isPartner,
-      isFounder,
-      isIntern,
-      language = DEFAULT_LANGUAGE,
-      translations = []
-    } = body
+    const { image, imagePublicId, linkedinUrl, language = DEFAULT_LANGUAGE, translations = [] } =
+      body
+    const flags = resolveLawyerFlagsFromBody(body as Record<string, unknown>)
 
     // Get name from first translation for slug generation
     const firstTranslation = translations.find((t: any) => t.name)
     const name = firstTranslation?.name || 'lawyer'
     const slug = generateSlug(name, language)
 
+    const linkedinTrimmed =
+      linkedinUrl != null && String(linkedinUrl).trim() !== ''
+        ? String(linkedinUrl).trim()
+        : null
+
     const lawyer = await prisma.lawyer.create({
       data: {
         slug,
         image,
         imagePublicId,
-        isPartner: isPartner || false,
-        isFounder: isFounder || false,
-        isIntern: isIntern || false,
+        linkedinUrl: linkedinTrimmed,
+        isPartner: flags.isPartner,
+        isFounder: flags.isFounder,
+        isIntern: flags.isIntern,
+        isLawyer: flags.isLawyer,
+        isConsultant: flags.isConsultant,
         translations: {
           create: translations.map((translation: any) => ({
             language: translation.language,
@@ -176,7 +201,9 @@ export async function POST(request: NextRequest) {
             bio: translation.bio,
             education: translation.education,
             languages: translation.languages,
-            practiceAreas: translation.practiceAreas,
+            practiceAreas: normalizeLawyerPracticeAreaSlugs(
+              Array.isArray(translation.practiceAreas) ? translation.practiceAreas : []
+            ),
             bar: translation.bar,
             phone: translation.phone,
             email: translation.email

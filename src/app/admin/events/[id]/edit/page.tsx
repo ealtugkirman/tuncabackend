@@ -1,41 +1,59 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { ArrowLeft, Save, Eye, EyeOff } from 'lucide-react'
+import { Save } from 'lucide-react'
 import ImageUpload from '@/components/ImageUpload'
+import { EventMultilingualForm } from '@/components/admin/EventMultilingualForm'
+import { AdminFormShell } from '@/components/admin/AdminFormShell'
+import { AdminFormSection } from '@/components/admin/AdminFormSection'
+import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Language } from '@prisma/client'
+import { DEFAULT_LANGUAGE } from '@/lib/i18n'
 
 const eventSchema = z.object({
-  title: z.string().min(1, 'Başlık gereklidir'),
   date: z.string().min(1, 'Tarih gereklidir'),
-  year: z.string().min(1, 'Yıl gereklidir'),
-  excerpt: z.string().min(1, 'Özet gereklidir'),
-  content: z.string().min(1, 'İçerik gereklidir'),
   image: z.string().optional(),
   gallery: z.array(z.string()).optional(),
   eventType: z.string().min(1, 'Etkinlik türü gereklidir'),
-  category: z.string().min(1, 'Kategori gereklidir'),
-  location: z.string().optional(),
-  published: z.boolean().default(false)
+  published: z.boolean().default(false),
+  language: z.nativeEnum(Language).default(Language.TR),
+  translations: z
+    .array(
+      z.object({
+        language: z.nativeEnum(Language),
+        title: z.string().min(1, 'Başlık gereklidir'),
+        excerpt: z.string().min(1, 'Özet gereklidir'),
+        content: z.string().min(1, 'İçerik gereklidir'),
+      })
+    )
+    .optional(),
 })
 
 type EventForm = z.infer<typeof eventSchema>
 
-interface EditEventPageProps {
-  params: {
-    id: string
-  }
-}
-
-export default function EditEventPage({ params }: EditEventPageProps) {
+export default function EditEventPage() {
   const router = useRouter()
+  const routeParams = useParams()
+  const id = typeof routeParams.id === 'string' ? routeParams.id : ''
+
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingData, setIsLoadingData] = useState(true)
   const [error, setError] = useState('')
   const [galleryImages, setGalleryImages] = useState<string[]>([])
+  const [translations, setTranslations] = useState<
+    Array<{
+      language: Language
+      title?: string
+      excerpt?: string
+      content?: string
+    }>
+  >([])
 
   const {
     register,
@@ -43,23 +61,39 @@ export default function EditEventPage({ params }: EditEventPageProps) {
     formState: { errors },
     watch,
     setValue,
-    reset
+    reset,
   } = useForm<EventForm>({
-    resolver: zodResolver(eventSchema)
+    resolver: zodResolver(eventSchema),
+    defaultValues: {
+      published: false,
+      language: Language.TR,
+      translations: [],
+    },
   })
 
-  const published = watch('published')
-
   useEffect(() => {
-    const fetchEvent = async () => {
+    if (!id) {
+      setIsLoadingData(false)
+      return
+    }
+
+    const load = async () => {
       try {
-        const response = await fetch(`/api/events/${params.id}`)
+        const response = await fetch(`/api/events/${id}?allTranslations=1`)
         if (!response.ok) {
           throw new Error('Etkinlik bulunamadı')
         }
         const event = await response.json()
-        reset(event)
-        setGalleryImages(event.gallery || [])
+        setTranslations(event.translations || [])
+        setGalleryImages(Array.isArray(event.gallery) ? event.gallery : [])
+        reset({
+          date: event.date || '',
+          eventType: event.eventType || '',
+          published: event.published ?? false,
+          language: Language.TR,
+          image: event.image || '',
+          translations: [],
+        })
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Bir hata oluştu')
       } finally {
@@ -67,27 +101,52 @@ export default function EditEventPage({ params }: EditEventPageProps) {
       }
     }
 
-    fetchEvent()
-  }, [params.id, reset])
+    load()
+  }, [id, reset])
 
   const onSubmit = async (data: EventForm) => {
-    setIsLoading(true)
     setError('')
 
+    if (!translations || translations.length === 0) {
+      setError('En az bir dil için çeviri ekleyin.')
+      return
+    }
+
+    const hasValidTranslations = translations.every(
+      (t) => t.title?.trim() && t.excerpt?.trim() && t.content?.trim()
+    )
+
+    if (!hasValidTranslations) {
+      setError('Tüm çevirilerde başlık, özet ve içerik dolu olmalıdır.')
+      return
+    }
+
+    const primary =
+      translations.find((t) => t.language === DEFAULT_LANGUAGE) ?? translations[0]
+
+    setIsLoading(true)
+
     try {
-      const response = await fetch(`/api/events/${params.id}`, {
+      const response = await fetch(`/api/events/${id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...data,
-          gallery: galleryImages
+          date: data.date,
+          image: data.image,
+          gallery: galleryImages,
+          eventType: data.eventType,
+          published: data.published,
+          language: primary.language,
+          title: primary.title,
+          excerpt: primary.excerpt,
+          content: primary.content,
+          translations: translations.filter((t) => t.language !== primary.language),
         }),
       })
 
       if (!response.ok) {
-        throw new Error('Etkinlik güncellenemedi')
+        const errJson = await response.json().catch(() => ({}))
+        throw new Error(errJson.error || 'Etkinlik güncellenemedi')
       }
 
       router.push('/admin/events')
@@ -100,88 +159,37 @@ export default function EditEventPage({ params }: EditEventPageProps) {
 
   if (isLoadingData) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Yükleniyor...</p>
+      <AdminFormShell title="Edit event" subtitle="Loading…">
+        <div className="flex min-h-[40vh] items-center justify-center text-sm text-muted-foreground">
+          <span className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
-      </div>
+      </AdminFormShell>
     )
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center space-x-4">
-        <button
-          onClick={() => router.back()}
-          className="flex items-center text-gray-600 hover:text-gray-900"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Geri
-        </button>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Etkinlik Düzenle</h1>
-          <p className="text-gray-600">Etkinlik bilgilerini güncelleyin</p>
-        </div>
-      </div>
-
+    <AdminFormShell title="Edit event" subtitle="Bilingual program copy, media, and schedule.">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <div className="bg-white shadow rounded-lg p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Başlık *
-              </label>
-              <input
-                {...register('title')}
-                type="text"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Etkinlik başlığı"
-              />
-              {errors.title && (
-                <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
-              )}
+        <AdminFormSection title="Content" description="Add TR/EN translations before publishing.">
+          <EventMultilingualForm translations={translations} onTranslationsChange={setTranslations} />
+        </AdminFormSection>
+
+        <AdminFormSection title="Schedule & media">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="date">Date *</Label>
+              <Input id="date" type="date" {...register('date')} />
+              {errors.date && <p className="text-xs text-destructive">{errors.date.message}</p>}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tarih *
-              </label>
-              <input
-                {...register('date')}
-                type="text"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="15 Ocak 2025"
-              />
-              {errors.date && (
-                <p className="mt-1 text-sm text-red-600">{errors.date.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Yıl *
-              </label>
-              <input
-                {...register('year')}
-                type="text"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="2025"
-              />
-              {errors.year && (
-                <p className="mt-1 text-sm text-red-600">{errors.year.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Etkinlik Türü *
-              </label>
+            <div className="space-y-2">
+              <Label htmlFor="eventType">Event type *</Label>
               <select
+                id="eventType"
                 {...register('eventType')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <option value="">Seçiniz</option>
+                <option value="">Select</option>
                 <option value="Sürdürülebilirlik">Sürdürülebilirlik</option>
                 <option value="Hukuk Semineri">Hukuk Semineri</option>
                 <option value="Konferans">Konferans</option>
@@ -189,46 +197,12 @@ export default function EditEventPage({ params }: EditEventPageProps) {
                 <option value="Diğer">Diğer</option>
               </select>
               {errors.eventType && (
-                <p className="mt-1 text-sm text-red-600">{errors.eventType.message}</p>
+                <p className="text-xs text-destructive">{errors.eventType.message}</p>
               )}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Kategori *
-              </label>
-              <select
-                {...register('category')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="">Seçiniz</option>
-                <option value="Kurumsal Sorumluluk">Kurumsal Sorumluluk</option>
-                <option value="Eğitim">Eğitim</option>
-                <option value="Networking">Networking</option>
-                <option value="Sosyal Etkinlik">Sosyal Etkinlik</option>
-                <option value="Diğer">Diğer</option>
-              </select>
-              {errors.category && (
-                <p className="mt-1 text-sm text-red-600">{errors.category.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Konum
-              </label>
-              <input
-                {...register('location')}
-                type="text"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Ankara, İstanbul, vb."
-              />
-            </div>
-
-            <div className="lg:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Etkinlik Görseli
-              </label>
+            <div className="space-y-2 lg:col-span-2">
+              <Label>Cover image</Label>
               <ImageUpload
                 value={watch('image')}
                 onChange={(url) => setValue('image', url)}
@@ -237,118 +211,77 @@ export default function EditEventPage({ params }: EditEventPageProps) {
               />
             </div>
 
-            <div className="lg:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Etkinlik Galerisi (Opsiyonel)
-              </label>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {galleryImages.map((image, index) => (
-                    <div key={index} className="relative group">
-                      <img
-                        src={image}
-                        alt={`Galeri ${index + 1}`}
-                        className="w-full h-24 object-cover rounded-lg border"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setGalleryImages(galleryImages.filter((_, i) => i !== index))}
-                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                <ImageUpload
-                  value=""
-                  onChange={(url) => {
-                    if (url && !galleryImages.includes(url)) {
-                      setGalleryImages([...galleryImages, url])
-                    }
-                  }}
-                  folder="events/gallery"
-                  className="w-full"
-                  placeholder="Galeri için resim ekle"
-                />
-                {galleryImages.length > 0 && (
-                  <p className="text-sm text-gray-500">
-                    {galleryImages.length} resim eklendi
-                  </p>
-                )}
+            <div className="space-y-3 lg:col-span-2">
+              <Label>Gallery (optional)</Label>
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
+                {galleryImages.map((imageUrl, index) => (
+                  <div key={`${imageUrl}-${index}`} className="group relative">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={imageUrl}
+                      alt=""
+                      className="h-24 w-full rounded-md border border-border object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setGalleryImages(galleryImages.filter((_, i) => i !== index))}
+                      className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-xs text-destructive-foreground"
+                      aria-label="Remove"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
               </div>
-            </div>
-
-            <div className="lg:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Özet *
-              </label>
-              <textarea
-                {...register('excerpt')}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Etkinlik hakkında kısa açıklama"
+              <ImageUpload
+                value=""
+                onChange={(url) => {
+                  if (url && !galleryImages.includes(url)) {
+                    setGalleryImages([...galleryImages, url])
+                  }
+                }}
+                folder="events/gallery"
+                className="w-full"
               />
-              {errors.excerpt && (
-                <p className="mt-1 text-sm text-red-600">{errors.excerpt.message}</p>
+              {galleryImages.length > 0 && (
+                <p className="text-xs text-muted-foreground">{galleryImages.length} images</p>
               )}
             </div>
 
-            <div className="lg:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                İçerik *
-              </label>
-              <textarea
-                {...register('content')}
-                rows={10}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Etkinlik detayları (HTML formatında)"
+            <div className="flex items-center gap-2 lg:col-span-2">
+              <input
+                {...register('published')}
+                type="checkbox"
+                id="published"
+                className="h-4 w-4 rounded border-border"
               />
-              {errors.content && (
-                <p className="mt-1 text-sm text-red-600">{errors.content.message}</p>
-              )}
-            </div>
-
-            <div className="lg:col-span-2">
-              <div className="flex items-center">
-                <input
-                  {...register('published')}
-                  type="checkbox"
-                  id="published"
-                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                />
-                <label htmlFor="published" className="ml-2 block text-sm text-gray-900">
-                  Yayınla
-                </label>
-              </div>
+              <Label htmlFor="published" className="font-normal">
+                Published
+              </Label>
             </div>
           </div>
-        </div>
+        </AdminFormSection>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-md p-4">
-            <p className="text-sm text-red-600">{error}</p>
+          <div className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            {error}
           </div>
         )}
 
-        <div className="flex justify-end space-x-4">
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-          >
-            İptal
-          </button>
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 flex items-center space-x-2"
-          >
-            <Save className="w-4 h-4" />
-            <span>{isLoading ? 'Güncelleniyor...' : 'Güncelle'}</span>
-          </button>
+        <div className="flex justify-end gap-3 border-t border-border pt-6">
+          <Button type="button" variant="outline" onClick={() => router.back()}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={isLoading} className="gap-2">
+            {isLoading ? (
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            Save changes
+          </Button>
         </div>
       </form>
-    </div>
+    </AdminFormShell>
   )
 }

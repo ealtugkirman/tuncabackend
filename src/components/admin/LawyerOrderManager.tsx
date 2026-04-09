@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd'
-import { GripVertical, User, Crown, Star, GraduationCap } from 'lucide-react'
+import { GripVertical, User, Crown, Star, GraduationCap, Scale } from 'lucide-react'
+import { lawyerRoleLabelTr } from '@/lib/lawyer-position'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -15,12 +16,14 @@ interface Lawyer {
   isPartner: boolean
   isFounder: boolean
   isIntern: boolean
+  isConsultant?: boolean
+  isLawyer?: boolean
   order: number
 }
 
 interface LawyerOrderManagerProps {
   lawyers: Lawyer[]
-  onOrderChange: (lawyers: Lawyer[]) => void
+  onOrderChange?: (lawyers: Lawyer[]) => void
   onSave: (lawyers: Lawyer[]) => Promise<void>
   isLoading?: boolean
 }
@@ -62,7 +65,7 @@ export function LawyerOrderManager({
 
     console.log('🔄 Updated items with new order:', updatedItems)
     setItems(updatedItems)
-    onOrderChange(updatedItems)
+    onOrderChange?.(updatedItems)
     setHasChanges(true)
   }
 
@@ -81,18 +84,22 @@ export function LawyerOrderManager({
   }
 
   const getRoleIcon = (lawyer: Lawyer) => {
-    if (lawyer.isFounder) return <Crown className="w-4 h-4 text-yellow-500" />
-    if (lawyer.isPartner) return <Star className="w-4 h-4 text-blue-500" />
     if (lawyer.isIntern) return <GraduationCap className="w-4 h-4 text-green-500" />
+    if (lawyer.isConsultant) return <Scale className="w-4 h-4 text-violet-500" />
+    if (lawyer.isFounder && lawyer.isPartner) return <Crown className="w-4 h-4 text-yellow-500" />
+    if (lawyer.isFounder) return <Crown className="w-4 h-4 text-amber-500" />
+    if (lawyer.isPartner) return <Star className="w-4 h-4 text-blue-500" />
     return <User className="w-4 h-4 text-gray-500" />
   }
 
-  const getRoleText = (lawyer: Lawyer) => {
-    if (lawyer.isFounder) return t('admin.founder')
-    if (lawyer.isPartner) return t('admin.partner')
-    if (lawyer.isIntern) return t('admin.intern')
-    return t('admin.associate')
-  }
+  const getRoleText = (lawyer: Lawyer) =>
+    lawyerRoleLabelTr({
+      isPartner: lawyer.isPartner,
+      isFounder: lawyer.isFounder,
+      isIntern: lawyer.isIntern,
+      isLawyer: lawyer.isLawyer ?? true,
+      isConsultant: lawyer.isConsultant,
+    })
 
   return (
     <div className="space-y-6">

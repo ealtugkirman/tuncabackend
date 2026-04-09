@@ -1,37 +1,65 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { ArrowLeft, Save } from 'lucide-react'
+import { Save } from 'lucide-react'
+import { Language } from '@prisma/client'
+import ImageUpload from '@/components/ImageUpload'
+import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Input } from '@/components/ui/input'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { AnnouncementMultilingualForm } from '@/components/admin/AnnouncementMultilingualForm'
+import { AdminFormShell } from '@/components/admin/AdminFormShell'
+import { AdminFormSection } from '@/components/admin/AdminFormSection'
+import {
+  ANNOUNCEMENT_PRACTICE_AREAS,
+  isValidAnnouncementPracticeAreaSlug,
+} from '@/lib/announcement-practice-areas'
 
 const announcementSchema = z.object({
-  title: z.string().min(1, 'Başlık gereklidir'),
   date: z.string().min(1, 'Tarih gereklidir'),
-  year: z.string().min(1, 'Yıl gereklidir'),
-  excerpt: z.string().min(1, 'Özet gereklidir'),
-  content: z.string().min(1, 'İçerik gereklidir'),
+  practiceAreaSlug: z
+    .string()
+    .min(1, 'Çalışma alanı seçiniz')
+    .refine(isValidAnnouncementPracticeAreaSlug, 'Geçersiz çalışma alanı'),
+  lawyerId: z.string().optional(),
   image: z.string().optional(),
-  category: z.string().min(1, 'Kategori gereklidir'),
   isDark: z.boolean().default(false),
-  published: z.boolean().default(false)
+  published: z.boolean().default(false),
+  language: z.nativeEnum(Language).default(Language.TR),
+  translations: z.array(z.any()).optional(),
 })
 
 type AnnouncementForm = z.infer<typeof announcementSchema>
 
-interface EditAnnouncementPageProps {
-  params: {
-    id: string
-  }
-}
-
-export default function EditAnnouncementPage({ params }: EditAnnouncementPageProps) {
+export default function EditAnnouncementPage() {
   const router = useRouter()
+  const routeParams = useParams()
+  const id = typeof routeParams.id === 'string' ? routeParams.id : ''
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingData, setIsLoadingData] = useState(true)
   const [error, setError] = useState('')
+  const [lawyerOptions, setLawyerOptions] = useState<{ id: string; name: string }[]>([])
+  const [translations, setTranslations] = useState<
+    Array<{
+      language: Language
+      title?: string
+      excerpt?: string
+      content?: string
+    }>
+  >([
+    {
+      language: Language.TR,
+      title: '',
+      excerpt: '',
+      content: '',
+    },
+  ])
 
   const {
     register,
@@ -39,23 +67,76 @@ export default function EditAnnouncementPage({ params }: EditAnnouncementPagePro
     formState: { errors },
     watch,
     setValue,
-    reset
+    reset,
   } = useForm<AnnouncementForm>({
-    resolver: zodResolver(announcementSchema)
+    resolver: zodResolver(announcementSchema),
+    defaultValues: {
+      published: false,
+      isDark: false,
+      practiceAreaSlug: '',
+      lawyerId: '',
+      language: Language.TR,
+      translations: [
+        {
+          language: Language.TR,
+          title: '',
+          excerpt: '',
+          content: '',
+        },
+      ],
+    },
   })
 
-  const published = watch('published')
-  const isDark = watch('isDark')
+  useEffect(() => {
+    setValue('translations', translations)
+  }, [translations, setValue])
 
   useEffect(() => {
+    let cancelled = false
+    fetch('/api/lawyers?language=TR&sortBy=order&sortOrder=asc&limit=2000')
+      .then((res) => res.json())
+      .then((json) => {
+        if (cancelled || !json?.data) return
+        setLawyerOptions(
+          json.data.map((l: { id: string; name: string }) => ({ id: l.id, name: l.name }))
+        )
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!id) {
+      setIsLoadingData(false)
+      return
+    }
+
     const fetchAnnouncement = async () => {
       try {
-        const response = await fetch(`/api/announcements/${params.id}`)
+        const response = await fetch(`/api/announcements/${id}?allTranslations=1`)
         if (!response.ok) {
           throw new Error('Duyuru bulunamadı')
         }
+
         const announcement = await response.json()
-        reset(announcement)
+        const loadedTranslations =
+          Array.isArray(announcement.translations) && announcement.translations.length > 0
+            ? announcement.translations
+            : [{ language: Language.TR, title: '', excerpt: '', content: '' }]
+
+        setTranslations(loadedTranslations)
+        reset({
+          date: announcement.date || '',
+          practiceAreaSlug: announcement.practiceAreaSlug || '',
+          lawyerId: announcement.lawyerId ?? '',
+          image: announcement.image || '',
+          isDark: Boolean(announcement.isDark),
+          published: Boolean(announcement.published),
+          language: Language.TR,
+          translations: loadedTranslations,
+        })
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Bir hata oluştu')
       } finally {
@@ -64,23 +145,51 @@ export default function EditAnnouncementPage({ params }: EditAnnouncementPagePro
     }
 
     fetchAnnouncement()
-  }, [params.id, reset])
+  }, [id, reset])
 
   const onSubmit = async (data: AnnouncementForm) => {
     setIsLoading(true)
     setError('')
 
+    if (!translations || translations.length === 0) {
+      setError('En az bir dil için çeviri eklemelisiniz')
+      setIsLoading(false)
+      return
+    }
+
+    const validTranslations = translations.filter(
+      (t) => t.title?.trim() && t.excerpt?.trim() && t.content?.trim()
+    )
+
+    if (validTranslations.length === 0) {
+      setError('Her çeviri için başlık, özet ve içerik doldurulmalıdır.')
+      setIsLoading(false)
+      return
+    }
+
+    const primary = validTranslations.find((t) => t.language === Language.TR) || validTranslations[0]
+    const additional = validTranslations.filter((t) => t.language !== primary.language)
+
     try {
-      const response = await fetch(`/api/announcements/${params.id}`, {
+      const response = await fetch(`/api/announcements/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          lawyerId: data.lawyerId?.trim() || null,
+          language: primary.language,
+          title: primary.title,
+          excerpt: primary.excerpt,
+          content: primary.content,
+          translations: additional,
+        }),
       })
 
       if (!response.ok) {
-        throw new Error('Duyuru güncellenemedi')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Duyuru güncellenemedi')
       }
 
       router.push('/admin/announcements')
@@ -93,196 +202,116 @@ export default function EditAnnouncementPage({ params }: EditAnnouncementPagePro
 
   if (isLoadingData) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Yükleniyor...</p>
+      <AdminFormShell title="Edit announcement" subtitle="Loading...">
+        <div className="flex min-h-[40vh] items-center justify-center text-sm text-muted-foreground">
+          <span className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
-      </div>
+      </AdminFormShell>
     )
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center space-x-4">
-        <button
-          onClick={() => router.back()}
-          className="flex items-center text-gray-600 hover:text-gray-900"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Geri
-        </button>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Duyuru Düzenle</h1>
-          <p className="text-gray-600">Duyuru bilgilerini güncelleyin</p>
-        </div>
-      </div>
-
+    <AdminFormShell title="Edit announcement" subtitle="Schedule date, visuals, and bilingual copy.">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <div className="bg-white shadow rounded-lg p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Başlık *
-              </label>
-              <input
-                {...register('title')}
-                type="text"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Duyuru başlığı"
-              />
-              {errors.title && (
-                <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
-              )}
+        <AdminFormSection title="Content" description="Turkish / English tabs for title, excerpt, and body.">
+          <AnnouncementMultilingualForm translations={translations} onTranslationsChange={setTranslations} />
+        </AdminFormSection>
+
+        <AdminFormSection title="Details" description="Date, cover image, and publish options.">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="date">Date *</Label>
+              <Input id="date" type="date" {...register('date')} />
+              {errors.date && <p className="text-xs text-destructive">{errors.date.message}</p>}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tarih *
-              </label>
-              <input
-                {...register('date')}
-                type="text"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="15 Aralık 2024"
-              />
-              {errors.date && (
-                <p className="mt-1 text-sm text-red-600">{errors.date.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Yıl *
-              </label>
-              <input
-                {...register('year')}
-                type="text"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="2024"
-              />
-              {errors.year && (
-                <p className="mt-1 text-sm text-red-600">{errors.year.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Kategori *
-              </label>
+            <div className="space-y-2 lg:col-span-2">
+              <Label htmlFor="practiceAreaSlug">Çalışma alanı *</Label>
               <select
-                {...register('category')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                id="practiceAreaSlug"
+                {...register('practiceAreaSlug')}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <option value="">Seçiniz</option>
-                <option value="Birleşme ve Devralmalar">Birleşme ve Devralmalar</option>
-                <option value="Sermaye Piyasaları">Sermaye Piyasaları</option>
-                <option value="Kurumsal Hukuk">Kurumsal Hukuk</option>
-                <option value="İş Hukuku">İş Hukuku</option>
-                <option value="Ticaret Hukuku ve Sermaye Piyasaları">Ticaret Hukuku ve Sermaye Piyasaları</option>
-                <option value="Diğer">Diğer</option>
+                {ANNOUNCEMENT_PRACTICE_AREAS.map((a) => (
+                  <option key={a.slug} value={a.slug}>
+                    {a.tr}
+                  </option>
+                ))}
               </select>
-              {errors.category && (
-                <p className="mt-1 text-sm text-red-600">{errors.category.message}</p>
+              {errors.practiceAreaSlug && (
+                <p className="text-xs text-destructive">{errors.practiceAreaSlug.message}</p>
               )}
             </div>
 
-            <div className="lg:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Görsel URL
-              </label>
-              <input
-                {...register('image')}
-                type="url"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="https://example.com/image.jpg"
+            <div className="space-y-2 lg:col-span-2">
+              <Label htmlFor="lawyerId">İletişim (duyuru ile ilişkili avukat)</Label>
+              <select
+                id="lawyerId"
+                {...register('lawyerId')}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value="">Seçmeyin</option>
+                {lawyerOptions.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-muted-foreground">
+                Seçilen avukat, duyuru sayfasında sağda İletişim bölümünde görünür.
+              </p>
+            </div>
+
+            <div className="space-y-2 lg:col-span-2">
+              <Label>Cover image</Label>
+              <ImageUpload
+                value={watch('image')}
+                onChange={(url) => setValue('image', url)}
+                folder="announcements"
+                className="w-full"
               />
             </div>
 
-            <div className="lg:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Özet *
+            <div className="flex flex-col gap-4 lg:col-span-2">
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={watch('published')}
+                  onCheckedChange={(c) => setValue('published', c === true)}
+                />
+                <span>Published</span>
               </label>
-              <textarea
-                {...register('excerpt')}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Duyuru hakkında kısa açıklama"
-              />
-              {errors.excerpt && (
-                <p className="mt-1 text-sm text-red-600">{errors.excerpt.message}</p>
-              )}
-            </div>
-
-            <div className="lg:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                İçerik *
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={watch('isDark')}
+                  onCheckedChange={(c) => setValue('isDark', c === true)}
+                />
+                <span>Dark theme on public card</span>
               </label>
-              <textarea
-                {...register('content')}
-                rows={10}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Duyuru detayları (HTML formatında)"
-              />
-              {errors.content && (
-                <p className="mt-1 text-sm text-red-600">{errors.content.message}</p>
-              )}
-            </div>
-
-            <div className="lg:col-span-2">
-              <div className="space-y-4">
-                <div className="flex items-center">
-                  <input
-                    {...register('published')}
-                    type="checkbox"
-                    id="published"
-                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="published" className="ml-2 block text-sm text-gray-900">
-                    Yayınla
-                  </label>
-                </div>
-
-                <div className="flex items-center">
-                  <input
-                    {...register('isDark')}
-                    type="checkbox"
-                    id="isDark"
-                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="isDark" className="ml-2 block text-sm text-gray-900">
-                    Koyu Tema (Dark Mode)
-                  </label>
-                </div>
-              </div>
             </div>
           </div>
-        </div>
+        </AdminFormSection>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-md p-4">
-            <p className="text-sm text-red-600">{error}</p>
-          </div>
+          <Alert variant="destructive" className="border-destructive/50">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         )}
 
-        <div className="flex justify-end space-x-4">
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-          >
-            İptal
-          </button>
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 flex items-center space-x-2"
-          >
-            <Save className="w-4 h-4" />
-            <span>{isLoading ? 'Güncelleniyor...' : 'Güncelle'}</span>
-          </button>
+        <div className="flex justify-end gap-3 border-t border-border pt-6">
+          <Button type="button" variant="outline" onClick={() => router.back()}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={isLoading} className="gap-2">
+            {isLoading ? (
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            Save
+          </Button>
         </div>
       </form>
-    </div>
+    </AdminFormShell>
   )
 }

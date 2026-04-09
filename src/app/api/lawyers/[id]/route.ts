@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
+import { normalizeLawyerPracticeAreaSlugs } from '@/lib/lawyer-practice-areas'
+import { resolveLawyerFlagsFromBody } from '@/lib/lawyer-position'
 
 // GET /api/lawyers/[id] - Get single lawyer
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    console.log('🔄 GET /api/lawyers/[id] called:', params.id)
+    const { id } = await params
+    console.log('🔄 GET /api/lawyers/[id] called:', id)
     
     const user = await getCurrentUser()
     console.log('👤 User:', user?.email, user?.role)
@@ -30,14 +33,14 @@ export async function GET(
     }
 
     const lawyer = await prisma.lawyer.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         translations: true
       }
     })
 
     if (!lawyer) {
-      console.log('❌ Lawyer not found:', params.id)
+      console.log('❌ Lawyer not found:', id)
       return NextResponse.json(
         { error: 'Lawyer not found' },
         { status: 404 }
@@ -62,10 +65,11 @@ export async function GET(
 // PUT /api/lawyers/[id] - Update lawyer
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    console.log('🔄 PUT /api/lawyers/[id] called:', params.id)
+    const { id } = await params
+    console.log('🔄 PUT /api/lawyers/[id] called:', id)
     
     const user = await getCurrentUser()
     console.log('👤 User:', user?.email, user?.role)
@@ -89,23 +93,16 @@ export async function PUT(
     const body = await request.json()
     console.log('📥 Request body:', body)
     
-    const {
-      image,
-      imagePublicId,
-      isPartner,
-      isFounder,
-      isIntern,
-      isLawyer,
-      translations
-    } = body
+    const { image, imagePublicId, linkedinUrl, translations } = body
+    const flags = resolveLawyerFlagsFromBody(body as Record<string, unknown>)
 
     // Check if lawyer exists
     const existingLawyer = await prisma.lawyer.findUnique({
-      where: { id: params.id }
+      where: { id: id }
     })
 
     if (!existingLawyer) {
-      console.log('❌ Lawyer not found:', params.id)
+      console.log('❌ Lawyer not found:', id)
       return NextResponse.json(
         { error: 'Lawyer not found' },
         { status: 404 }
@@ -114,15 +111,22 @@ export async function PUT(
 
     // Update lawyer
     console.log('🔄 Updating lawyer in database...')
+    const linkedinTrimmed =
+      linkedinUrl != null && String(linkedinUrl).trim() !== ''
+        ? String(linkedinUrl).trim()
+        : null
+
     const updatedLawyer = await prisma.lawyer.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         image: image || '',
         imagePublicId: imagePublicId || undefined,
-        isPartner: Boolean(isPartner),
-        isFounder: Boolean(isFounder),
-        isIntern: Boolean(isIntern),
-        isLawyer: Boolean(isLawyer)
+        linkedinUrl: linkedinTrimmed,
+        isPartner: flags.isPartner,
+        isFounder: flags.isFounder,
+        isIntern: flags.isIntern,
+        isLawyer: flags.isLawyer,
+        isConsultant: flags.isConsultant,
       },
       include: {
         translations: true
@@ -137,20 +141,22 @@ export async function PUT(
       
       // Delete existing translations
       await prisma.lawyerTranslation.deleteMany({
-        where: { lawyerId: params.id }
+        where: { lawyerId: id }
       })
 
       // Create new translations
       const translationData = translations
         .filter((t: any) => t.name && String(t.name).trim() !== '')
         .map((t: any) => ({
-          lawyerId: params.id,
+          lawyerId: id,
           language: t.language,
           name: String(t.name).trim(),
           bio: t.bio ? String(t.bio).trim() : undefined,
           education: t.education ? String(t.education).trim() : undefined,
           languages: t.languages ? String(t.languages).trim() : undefined,
-          practiceAreas: Array.isArray(t.practiceAreas) ? t.practiceAreas : [],
+          practiceAreas: normalizeLawyerPracticeAreaSlugs(
+            Array.isArray(t.practiceAreas) ? t.practiceAreas : []
+          ),
           bar: t.bar ? String(t.bar).trim() : undefined,
           phone: t.phone ? String(t.phone).trim() : undefined,
           email: t.email ? String(t.email).trim() : undefined
@@ -166,7 +172,7 @@ export async function PUT(
 
     // Fetch updated lawyer with translations
     const finalLawyer = await prisma.lawyer.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         translations: true
       }
@@ -191,10 +197,11 @@ export async function PUT(
 // DELETE /api/lawyers/[id] - Delete lawyer
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    console.log('🔄 DELETE /api/lawyers/[id] called:', params.id)
+    const { id } = await params
+    console.log('🔄 DELETE /api/lawyers/[id] called:', id)
     
     const user = await getCurrentUser()
     console.log('👤 User:', user?.email, user?.role)
@@ -217,11 +224,11 @@ export async function DELETE(
 
     // Check if lawyer exists
     const existingLawyer = await prisma.lawyer.findUnique({
-      where: { id: params.id }
+      where: { id: id }
     })
 
     if (!existingLawyer) {
-      console.log('❌ Lawyer not found:', params.id)
+      console.log('❌ Lawyer not found:', id)
       return NextResponse.json(
         { error: 'Lawyer not found' },
         { status: 404 }
@@ -231,10 +238,10 @@ export async function DELETE(
     // Delete lawyer (translations will be deleted automatically due to cascade)
     console.log('🔄 Deleting lawyer from database...')
     await prisma.lawyer.delete({
-      where: { id: params.id }
+      where: { id: id }
     })
 
-    console.log('✅ Lawyer deleted:', params.id)
+    console.log('✅ Lawyer deleted:', id)
     return NextResponse.json({
       success: true,
       message: 'Lawyer deleted successfully'

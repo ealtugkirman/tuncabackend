@@ -1,181 +1,186 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
-import { DEFAULT_LANGUAGE, generateSlug } from '@/lib/i18n'
+import { DEFAULT_LANGUAGE, parseLanguageParam } from '@/lib/i18n'
 import { Language } from '@prisma/client'
 
 // GET /api/events/[id] - Get single event
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const { searchParams } = new URL(request.url)
-    const language = (searchParams.get('language') as Language) || DEFAULT_LANGUAGE
+    const language = parseLanguageParam(searchParams.get('language'))
+    const allTranslations = searchParams.get('allTranslations') === '1'
+
+    if (allTranslations) {
+      const event = await prisma.event.findUnique({
+        where: { id },
+        include: {
+          translations: true,
+        },
+      })
+
+      if (!event) {
+        return NextResponse.json({ error: 'Event not found' }, { status: 404 })
+      }
+
+      const { translations, ...rest } = event
+      return NextResponse.json({
+        ...rest,
+        date: event.date.toISOString().slice(0, 10),
+        translations: translations.map((t) => ({
+          language: t.language,
+          title: t.title,
+          excerpt: t.excerpt,
+          content: t.content,
+        })),
+      })
+    }
 
     const event = await prisma.event.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         translations: {
-          where: { language }
-        }
-      }
+          where: { language },
+        },
+      },
     })
 
     if (!event) {
-      return NextResponse.json(
-        { error: 'Event not found' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'Event not found' }, { status: 404 })
     }
 
-    // Transform to include translation data at root level
     const translation = event.translations[0]
     const result = {
       ...event,
       title: translation?.title || '',
       excerpt: translation?.excerpt || '',
       content: translation?.content || '',
-      translations: undefined // Remove translations from response
+      translations: undefined,
     }
 
     return NextResponse.json(result)
   } catch (error) {
     console.error('Error fetching event:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch event' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to fetch event' }, { status: 500 })
   }
 }
 
 // PUT /api/events/[id] - Update event (admin only)
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const user = await getCurrentUser()
     if (!user || (user.role !== 'ADMIN' && user.role !== 'SUPERADMIN')) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const body = await request.json()
     const {
       title,
       date,
-      year,
       excerpt,
       content,
       image,
       gallery,
       eventType,
-      category,
-      location,
       published,
       language = DEFAULT_LANGUAGE,
-      translations = []
+      translations = [],
     } = body
 
-    // Update or create translations
+    const additional = (translations as { language: Language; title: string; excerpt: string; content: string }[]).filter(
+      (t) => t.language !== language
+    )
+
     const event = await prisma.event.update({
-      where: { id: params.id },
+      where: { id },
       data: {
-        date,
-        year,
+        date: new Date(date),
         image,
         gallery: gallery || [],
         eventType,
-        category,
-        location,
-        published: published || false,
+        published: published ?? false,
         translations: {
           upsert: [
-            // Main translation
             {
               where: {
                 eventId_language: {
-                  eventId: params.id,
-                  language
-                }
+                  eventId: id,
+                  language,
+                },
               },
               update: {
                 title,
                 excerpt,
-                content
+                content,
               },
               create: {
                 language,
                 title,
                 excerpt,
-                content
-              }
+                content,
+              },
             },
-            // Additional translations
-            ...translations.map((translation: any) => ({
+            ...additional.map((translation) => ({
               where: {
                 eventId_language: {
-                  eventId: params.id,
-                  language: translation.language
-                }
+                  eventId: id,
+                  language: translation.language,
+                },
               },
               update: {
                 title: translation.title,
                 excerpt: translation.excerpt,
-                content: translation.content
+                content: translation.content,
               },
               create: {
                 language: translation.language,
                 title: translation.title,
                 excerpt: translation.excerpt,
-                content: translation.content
-              }
-            }))
-          ]
-        }
+                content: translation.content,
+              },
+            })),
+          ],
+        },
       },
       include: {
-        translations: true
-      }
+        translations: true,
+      },
     })
 
     return NextResponse.json(event)
   } catch (error) {
     console.error('Error updating event:', error)
-    return NextResponse.json(
-      { error: 'Failed to update event' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to update event' }, { status: 500 })
   }
 }
 
 // DELETE /api/events/[id] - Delete event (admin only)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const user = await getCurrentUser()
     if (!user || (user.role !== 'ADMIN' && user.role !== 'SUPERADMIN')) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     await prisma.event.delete({
-      where: { id: params.id }
+      where: { id },
     })
 
     return NextResponse.json({ message: 'Event deleted successfully' })
   } catch (error) {
     console.error('Error deleting event:', error)
-    return NextResponse.json(
-      { error: 'Failed to delete event' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to delete event' }, { status: 500 })
   }
 }

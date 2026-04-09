@@ -19,9 +19,15 @@ export default async function LawyerDetailPage({ params }: LawyerDetailPageProps
       publications: {
         select: {
           id: true,
-          title: true,
           date: true,
-          published: true
+          published: true,
+          translations: {
+            where: { language: 'TR' },
+            select: {
+              title: true,
+            },
+            take: 1,
+          },
         },
         orderBy: {
           createdAt: 'desc'
@@ -127,7 +133,9 @@ export default async function LawyerDetailPage({ params }: LawyerDetailPageProps
                 {lawyer.publications.map((publication) => (
                   <div key={publication.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
                     <div>
-                      <p className="text-sm font-medium text-gray-900">{publication.title}</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        {publication.translations?.[0]?.title || 'Başlıksız yayın'}
+                      </p>
                       <p className="text-sm text-gray-600">{publication.date}</p>
                     </div>
                     <div className="flex items-center space-x-2">

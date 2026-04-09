@@ -1,9 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { getLanguageName } from '@/lib/i18n'
+import { getLanguageName, localizedFieldBracket, pickByLanguage } from '@/lib/i18n'
 import { Language } from '@prisma/client'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -111,14 +110,14 @@ export function EventMultilingualForm({
     onTranslationsChange(translations.filter(t => t.language !== language))
   }
 
-  const availableLanguages = [Language.TR, Language.EN]
+  const availableLanguages = [Language.TR, Language.EN, Language.RU]
   const existingLanguages = translations.map(t => t.language)
 
   return (
     <div className="space-y-4">
       {/* Language Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid h-9 w-full grid-cols-3 bg-muted/50 p-1">
           {availableLanguages.map((language) => {
             const exists = existingLanguages.includes(language)
             return (
@@ -177,13 +176,18 @@ export function EventMultilingualForm({
                   {/* Title */}
                   <div className="space-y-2">
                     <Label htmlFor={`title-${language}`}>
-                      Başlık {language === Language.TR ? '(Türkçe)' : '(İngilizce)'}
+                      Başlık {localizedFieldBracket(language)}
                     </Label>
                     <Input
                       id={`title-${language}`}
                       value={translation.title || ''}
                       onChange={(e) => updateTranslation(language, 'title', e.target.value)}
-                      placeholder={language === Language.TR ? 'Etkinlik başlığını girin...' : 'Enter event title...'}
+                      placeholder={pickByLanguage(
+                        language,
+                        'Etkinlik başlığını girin...',
+                        'Enter event title...',
+                        'Введите название мероприятия...'
+                      )}
                       className="w-full"
                     />
                   </div>
@@ -191,13 +195,18 @@ export function EventMultilingualForm({
                   {/* Excerpt */}
                   <div className="space-y-2">
                     <Label htmlFor={`excerpt-${language}`}>
-                      Özet {language === Language.TR ? '(Türkçe)' : '(İngilizce)'}
+                      Özet {localizedFieldBracket(language)}
                     </Label>
                     <Textarea
                       id={`excerpt-${language}`}
                       value={translation.excerpt || ''}
                       onChange={(e) => updateTranslation(language, 'excerpt', e.target.value)}
-                      placeholder={language === Language.TR ? 'Kısa açıklama girin...' : 'Enter short description...'}
+                      placeholder={pickByLanguage(
+                        language,
+                        'Kısa açıklama girin...',
+                        'Enter short description...',
+                        'Краткое описание...'
+                      )}
                       rows={3}
                       className="w-full"
                     />
@@ -206,43 +215,32 @@ export function EventMultilingualForm({
                   {/* Content */}
                   <div className="space-y-2">
                     <Label htmlFor={`content-${language}`}>
-                      İçerik {language === Language.TR ? '(Türkçe)' : '(İngilizce)'}
+                      İçerik {localizedFieldBracket(language)}
                     </Label>
                     <RichTextEditor
                       content={translation.content || ''}
                       onChange={(content) => updateTranslation(language, 'content', content)}
-                      placeholder={language === Language.TR ? 'Etkinlik içeriğini yazın...' : 'Write event content...'}
+                      placeholder={pickByLanguage(
+                        language,
+                        'Etkinlik içeriğini yazın...',
+                        'Write event content...',
+                        'Текст мероприятия...'
+                      )}
                     />
                   </div>
                 </div>
               )}
 
               {!exists && (
-                <div className="text-center py-8 text-gray-500">
-                  <p>Bu dil için henüz içerik eklenmemiş.</p>
-                  <p className="text-sm">Yukarıdaki "Ekle" butonuna tıklayarak içerik ekleyebilirsiniz.</p>
+                <div className="py-8 text-center text-sm text-muted-foreground">
+                  <p>No content for this language yet.</p>
+                  <p className="mt-1">Use Add to create a translation.</p>
                 </div>
               )}
             </TabsContent>
           )
         })}
       </Tabs>
-
-      {/* Summary */}
-      <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-        <h4 className="font-medium text-sm text-gray-700 mb-2">Çeviri Durumu:</h4>
-        <div className="flex space-x-4 text-sm">
-          {availableLanguages.map((language) => {
-            const exists = existingLanguages.includes(language)
-            return (
-              <div key={language} className="flex items-center space-x-1">
-                <span className={`w-2 h-2 rounded-full ${exists ? 'bg-green-500' : 'bg-gray-300'}`}></span>
-                <span>{getLanguageName(language)}: {exists ? 'Mevcut' : 'Yok'}</span>
-              </div>
-            )
-          })}
-        </div>
-      </div>
     </div>
   )
 }

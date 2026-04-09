@@ -3,7 +3,13 @@
 import { useRouter, usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { Globe, Check } from 'lucide-react'
-import { Language, getLanguageName, removeLanguageFromPath, addLanguageToPath } from '@/lib/i18n'
+import { Language } from '@prisma/client'
+import {
+  getLanguageName,
+  removeLanguageFromPath,
+  addLanguageToPath,
+  CONTENT_LANGUAGES,
+} from '@/lib/i18n'
 
 interface LanguageSwitcherProps {
   className?: string
@@ -14,10 +20,13 @@ export function LanguageSwitcher({ className = '' }: LanguageSwitcherProps) {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
 
-  const languages: Language[] = ['TR', 'EN']
-  
-  // Get current language from pathname
-  const currentLanguage = pathname.startsWith('/en') ? 'EN' : 'TR'
+  const languages = CONTENT_LANGUAGES
+
+  const currentLanguage: Language = pathname.startsWith('/en')
+    ? Language.EN
+    : pathname.startsWith('/ru')
+      ? Language.RU
+      : Language.TR
 
   const handleLanguageChange = (newLanguage: Language) => {
     const cleanPath = removeLanguageFromPath(pathname)

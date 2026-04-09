@@ -20,6 +20,8 @@ interface Lawyer {
   isPartner: boolean
   isFounder: boolean
   isIntern: boolean
+  isConsultant?: boolean
+  isLawyer?: boolean
   order: number
   translations: Array<{
     language: string
@@ -62,6 +64,8 @@ export default function LawyerOrderNewPage() {
           isPartner: lawyer.isPartner,
           isFounder: lawyer.isFounder,
           isIntern: lawyer.isIntern,
+          isConsultant: lawyer.isConsultant ?? false,
+          isLawyer: lawyer.isLawyer ?? true,
           order: lawyer.order || 0,
           translations: lawyer.translations || []
         }

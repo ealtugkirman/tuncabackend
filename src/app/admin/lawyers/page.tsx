@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Plus, Edit, Trash2, User, Award, GraduationCap, Eye, Search, Filter, ChevronLeft, ChevronRight, ArrowUpDown } from 'lucide-react'
+import { Plus, Edit, Trash2, User, GraduationCap, Eye, Search, Filter, ChevronLeft, ChevronRight, ArrowUpDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { lawyerRoleLabelTr } from '@/lib/lawyer-position'
 
 interface Lawyer {
   id: string
@@ -16,6 +17,8 @@ interface Lawyer {
   isFounder: boolean
   isPartner: boolean
   isIntern: boolean
+  isLawyer?: boolean
+  isConsultant?: boolean
   order: number
   createdAt: string
   name: string
@@ -283,18 +286,15 @@ export default function AdminLawyersPage() {
                     <div className="flex-1">
                       <div className="flex items-center space-x-2">
                         <h4 className="text-lg font-medium text-foreground">{lawyer.name || 'İsimsiz Avukat'}</h4>
-                        {lawyer.isFounder && (
-                          <Badge variant="secondary" className="text-xs">
-                            <Award className="w-3 h-3 mr-1" />
-                            Kurucu
-                          </Badge>
-                        )}
-                        {lawyer.isPartner && (
-                          <Badge variant="default" className="text-xs">
-                            <Award className="w-3 h-3 mr-1" />
-                            Ortak
-                          </Badge>
-                        )}
+                        <Badge variant="secondary" className="text-xs">
+                          {lawyerRoleLabelTr({
+                            isPartner: lawyer.isPartner,
+                            isFounder: lawyer.isFounder,
+                            isIntern: lawyer.isIntern,
+                            isLawyer: lawyer.isLawyer ?? true,
+                            isConsultant: lawyer.isConsultant,
+                          })}
+                        </Badge>
                       </div>
                       <p className="text-sm text-muted-foreground">{lawyer.title || 'Ünvan yok'}</p>
                       <p className="text-sm text-muted-foreground">{lawyer.email}</p>

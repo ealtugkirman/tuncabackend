@@ -17,6 +17,8 @@ interface Lawyer {
   isPartner: boolean
   isFounder: boolean
   isIntern: boolean
+  isConsultant?: boolean
+  isLawyer?: boolean
   order: number
   translations: Array<{
     language: string
@@ -57,6 +59,8 @@ export default function LawyerOrderPage() {
           isPartner: lawyer.isPartner,
           isFounder: lawyer.isFounder,
           isIntern: lawyer.isIntern,
+          isConsultant: lawyer.isConsultant ?? false,
+          isLawyer: lawyer.isLawyer ?? true,
           order: lawyer.order || 0,
           translations: lawyer.translations || []
         }
@@ -73,11 +77,6 @@ export default function LawyerOrderPage() {
   useEffect(() => {
     fetchLawyers()
   }, [locale])
-
-  const handleOrderChange = (updatedLawyers: Lawyer[]) => {
-    console.log('🔄 Order changed in parent:', updatedLawyers)
-    setLawyers(updatedLawyers)
-  }
 
   const handleSave = async (updatedLawyers: Lawyer[]) => {
     console.log('🔄 handleSave called with:', updatedLawyers)
@@ -180,7 +179,6 @@ export default function LawyerOrderPage() {
         {lawyers.length > 0 ? (
           <LawyerOrderManager
             lawyers={lawyers}
-            onOrderChange={handleOrderChange}
             onSave={handleSave}
           />
         ) : (

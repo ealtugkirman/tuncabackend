@@ -1,5 +1,6 @@
 import { prisma } from './prisma'
 import { Language, DEFAULT_LANGUAGE } from './i18n'
+import { getAnnouncementPracticeAreaLabel } from './announcement-practice-areas'
 
 export interface SEOData {
   title: string
@@ -327,26 +328,43 @@ export async function generateEventSEO(eventId: string): Promise<PageSEOData> {
 export async function generatePublicationSEO(publicationId: string): Promise<PageSEOData> {
   const publication = await prisma.publication.findUnique({
     where: { id: publicationId },
-    include: { lawyer: true }
+    include: {
+      translations: { where: { language: DEFAULT_LANGUAGE } },
+      lawyers: {
+        take: 1,
+        select: {
+          translations: { where: { language: DEFAULT_LANGUAGE }, take: 1 },
+        },
+      },
+    },
   })
 
   if (!publication) {
     throw new Error('Publication not found')
   }
 
-  const title = `${publication.title} | Tunca Avukatlık Yayınları`
-  const description = publication.excerpt.substring(0, 160)
+  const tr = publication.translations[0]
+  const titleText = tr?.title ?? 'Yayın'
+  const excerptText = tr?.excerpt ?? ''
+  const firstLawyerTr = publication.lawyers[0]?.translations[0]
+  const lawyerName = firstLawyerTr?.name
+
+  const areaKeywords = publication.practiceAreaSlugs.map((slug) =>
+    getAnnouncementPracticeAreaLabel(slug, 'tr')
+  )
+
+  const title = `${titleText} | Tunca Avukatlık Yayınları`
+  const description = excerptText.substring(0, 160)
 
   return {
     title,
     description,
     keywords: [
-      publication.title,
-      publication.practiceArea,
-      publication.category,
+      titleText,
+      ...areaKeywords,
       ...publication.tags,
       'hukuk yayınları',
-      'tunca avukatlık'
+      'tunca avukatlık',
     ],
     canonical: `${baseSEO.siteUrl}/yayinlar/${publicationId}`,
     ogTitle: title,
@@ -360,42 +378,43 @@ export async function generatePublicationSEO(publicationId: string): Promise<Pag
     breadcrumbs: [
       { name: 'Ana Sayfa', url: baseSEO.siteUrl },
       { name: 'Yayınlar', url: `${baseSEO.siteUrl}/yayinlar` },
-      { name: publication.title, url: `${baseSEO.siteUrl}/yayinlar/${publicationId}` }
+      { name: titleText, url: `${baseSEO.siteUrl}/yayinlar/${publicationId}` },
     ],
     structuredData: {
       '@context': 'https://schema.org',
       '@type': 'Article',
-      headline: publication.title,
-      description: publication.excerpt,
+      headline: titleText,
+      description: excerptText,
       datePublished: publication.createdAt,
       dateModified: publication.updatedAt,
-      author: publication.lawyer ? {
-        '@type': 'Person',
-        name: publication.lawyer.name,
-        jobTitle: publication.lawyer.title,
-        worksFor: {
-          '@type': 'LegalService',
-          name: 'Tunca Avukatlık'
-        }
-      } : {
-        '@type': 'Organization',
-        name: 'Tunca Avukatlık'
-      },
+      author: lawyerName
+        ? {
+            '@type': 'Person',
+            name: lawyerName,
+            worksFor: {
+              '@type': 'LegalService',
+              name: 'Tunca Avukatlık',
+            },
+          }
+        : {
+            '@type': 'Organization',
+            name: 'Tunca Avukatlık',
+          },
       publisher: {
         '@type': 'Organization',
         name: 'Tunca Avukatlık',
         url: baseSEO.siteUrl,
         logo: {
           '@type': 'ImageObject',
-          url: `${baseSEO.siteUrl}/images/tunca-law-logo.png`
-        }
+          url: `${baseSEO.siteUrl}/images/tunca-law-logo.png`,
+        },
       },
       mainEntityOfPage: {
         '@type': 'WebPage',
-        '@id': `${baseSEO.siteUrl}/yayinlar/${publicationId}`
+        '@id': `${baseSEO.siteUrl}/yayinlar/${publicationId}`,
       },
-      keywords: publication.tags.join(', ')
-    }
+      keywords: [...publication.tags, ...areaKeywords].join(', '),
+    },
   }
 }
 

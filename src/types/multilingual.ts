@@ -56,9 +56,11 @@ export interface MultilingualLawyer {
   email: string
   phone?: string
   image?: string
+  linkedinUrl?: string | null
   isFounder: boolean
   isPartner: boolean
   isIntern: boolean
+  isConsultant?: boolean
   practiceAreas: string[]
   education: string[]
   languages: string[]
