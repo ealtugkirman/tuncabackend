@@ -1,16 +1,26 @@
 /**
- * Creates or updates the tuncaadmin SUPERADMIN user.
- * Run: npx tsx scripts/upsert-tunca-admin.ts
+ * Ensures users.username exists and creates/updates tuncaadmin.
+ * Run against the target DB (local or production):
+ *   npx tsx scripts/setup-admin-user.ts
  */
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
-import { TUNCA_ADMIN_EMAIL, TUNCA_ADMIN_USERNAME } from '../src/lib/login-identifier'
+import {
+  TUNCA_ADMIN_EMAIL,
+  TUNCA_ADMIN_USERNAME,
+} from '../src/lib/login-identifier'
 
 const prisma = new PrismaClient()
-
 const PASSWORD = 'tuncaadmin2025?!'
 
 async function main() {
+  await prisma.$executeRawUnsafe(
+    'ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "username" TEXT'
+  )
+  await prisma.$executeRawUnsafe(
+    'CREATE UNIQUE INDEX IF NOT EXISTS "users_username_key" ON "users"("username")'
+  )
+
   const hashedPassword = await bcrypt.hash(PASSWORD, 12)
 
   const user = await prisma.user.upsert({
@@ -30,8 +40,9 @@ async function main() {
     },
   })
 
-  console.log('✅ User ready:', user.email)
-  console.log('   Login username: tuncaadmin')
+  console.log('✅ Admin user ready')
+  console.log('   Username:', TUNCA_ADMIN_USERNAME)
+  console.log('   Email (internal):', user.email)
 }
 
 main()

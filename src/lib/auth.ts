@@ -5,6 +5,7 @@ import { usernameToEmail } from './login-identifier'
 
 export const authOptions = {
   secret: process.env.NEXTAUTH_SECRET,
+  trustHost: true,
   debug: process.env.NODE_ENV === 'development',
   providers: [
     CredentialsProvider({
@@ -14,24 +15,29 @@ export const authOptions = {
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        if (!credentials?.username || !credentials?.password) {
+        const identifier = credentials?.username?.trim().toLowerCase() ?? ''
+        const password = credentials?.password ?? ''
+
+        if (!identifier || !password) {
           return null
         }
 
-        const email = usernameToEmail(credentials.username)
-
-        const user = await prisma.user.findUnique({
-          where: { email },
+        const user = await prisma.user.findFirst({
+          where: identifier.includes('@')
+            ? { email: identifier }
+            : {
+                OR: [
+                  { username: identifier },
+                  { email: usernameToEmail(identifier) },
+                ],
+              },
         })
 
         if (!user) {
           return null
         }
 
-        const isPasswordValid = await bcrypt.compare(
-          credentials.password,
-          user.password
-        )
+        const isPasswordValid = await bcrypt.compare(password, user.password)
 
         if (!isPasswordValid) {
           return null

@@ -97,7 +97,6 @@ export default function AdminLogin() {
                     id="username"
                     type="text"
                     autoComplete="username"
-                    placeholder="tuncaadmin"
                     className="w-full"
                   />
                   {errors.username && (
@@ -108,9 +107,9 @@ export default function AdminLogin() {
                   <Label htmlFor="password">Password</Label>
                   <Input
                     {...register('password')}
+                    id="password"
                     type="password"
                     autoComplete="current-password"
-                    placeholder="Enter your password"
                     className="w-full"
                   />
                   {errors.password && (

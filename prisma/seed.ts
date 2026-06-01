@@ -49,11 +49,13 @@ async function main() {
   const tuncaAdmin = await prisma.user.upsert({
     where: { email: 'tuncaadmin@tuncalaw.com' },
     update: {
+      username: 'tuncaadmin',
       password: tuncaPassword,
       name: 'Tunca Admin',
       role: 'SUPERADMIN',
     },
     create: {
+      username: 'tuncaadmin',
       email: 'tuncaadmin@tuncalaw.com',
       password: tuncaPassword,
       name: 'Tunca Admin',

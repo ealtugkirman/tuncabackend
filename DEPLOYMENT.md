@@ -83,20 +83,32 @@ Click "Deploy" and wait for the build to complete.
 
 ```bash
 # Run migrations on production
-npx prisma db push --force
-
-# Or run migrations
 npx prisma migrate deploy
 ```
 
-### 2. Test the Application
+### 2. Create admin login (required once per database)
+
+Production DB does not include seed users automatically. With production `DATABASE_URL` loaded (e.g. `vercel env pull`):
+
+```bash
+npx tsx scripts/setup-admin-user.ts
+```
+
+Default login at `/login`:
+
+- **Username:** `tuncaadmin`
+- **Password:** set in `scripts/setup-admin-user.ts` (change there before running if needed)
+
+Also set `NEXTAUTH_URL` to your live URL (e.g. `https://tunca-admin.digitalvoyage.agency`) and a strong `NEXTAUTH_SECRET`.
+
+### 3. Test the Application
 
 1. Visit your Vercel URL
 2. Test admin login
 3. Test image uploads
 4. Test all features
 
-### 3. Custom Domain (Optional)
+### 4. Custom Domain (Optional)
 
 1. Go to Project Settings > Domains
 2. Add your custom domain
@@ -108,9 +120,10 @@ npx prisma migrate deploy
 ### Common Issues
 
 1. **Database Connection**: Ensure `DATABASE_URL` is correct
-2. **NextAuth Issues**: Check `NEXTAUTH_URL` and `NEXTAUTH_SECRET`
-3. **Image Uploads**: Verify Cloudinary configuration
-4. **Build Errors**: Check build logs in Vercel dashboard
+2. **Invalid credentials on login**: Run `npx tsx scripts/setup-admin-user.ts` against production `DATABASE_URL`
+3. **NextAuth Issues**: Check `NEXTAUTH_URL` matches the deployed domain and `NEXTAUTH_SECRET` is set
+4. **Image Uploads**: Verify Cloudinary configuration
+5. **Build Errors**: Check build logs in Vercel dashboard
 
 ### Useful Commands
 
