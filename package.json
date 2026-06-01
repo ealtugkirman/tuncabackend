@@ -60,7 +60,7 @@
     "lowlight": "^3.3.0",
     "lucide-react": "^0.468.0",
     "multer": "^2.0.2",
-    "next": "15.5.2",
+    "next": "15.5.9",
     "next-auth": "^4.24.10",
     "next-cloudinary": "^6.16.0",
     "prisma": "^5.22.0",
