@@ -29,8 +29,7 @@ async function main() {
   })
 
   console.log('✅ User ready:', user.email)
-  console.log('   Login with username: tuncaadmin')
-  console.log('   Or email:', TUNCA_ADMIN_EMAIL)
+  console.log('   Login username: tuncaadmin')
 }
 
 main()

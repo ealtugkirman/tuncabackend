@@ -1,11 +1,7 @@
-/** Maps login field (email or username) to stored user email. */
-export function resolveLoginEmail(identifier: string): string {
-  const trimmed = identifier.trim().toLowerCase()
-  if (trimmed.includes('@')) {
-    return trimmed
-  }
-  return `${trimmed}@tuncalaw.com`
+/** Maps admin username to stored user email (users are keyed by email in the DB). */
+export function usernameToEmail(username: string): string {
+  return `${username.trim().toLowerCase()}@tuncalaw.com`
 }
 
 export const TUNCA_ADMIN_USERNAME = 'tuncaadmin'
-export const TUNCA_ADMIN_EMAIL = `${TUNCA_ADMIN_USERNAME}@tuncalaw.com`
+export const TUNCA_ADMIN_EMAIL = usernameToEmail(TUNCA_ADMIN_USERNAME)

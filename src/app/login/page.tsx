@@ -14,7 +14,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Gavel, Loader2 } from 'lucide-react'
 
 const loginSchema = z.object({
-  email: z.string().min(1, 'Email or username is required'),
+  username: z
+    .string()
+    .min(1, 'Username is required')
+    .regex(/^[a-zA-Z0-9._-]+$/, 'Username can only contain letters, numbers, dots, underscores, and hyphens'),
   password: z.string().min(1, 'Password is required'),
 })
 
@@ -39,7 +42,7 @@ export default function AdminLogin() {
 
     try {
       const result = await signIn('credentials', {
-        email: data.email,
+        username: data.username,
         password: data.password,
         redirect: false,
       })
@@ -88,16 +91,17 @@ export default function AdminLogin() {
             <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email or username</Label>
+                  <Label htmlFor="username">Username</Label>
                   <Input
-                    {...register('email')}
+                    {...register('username')}
+                    id="username"
                     type="text"
                     autoComplete="username"
                     placeholder="tuncaadmin"
                     className="w-full"
                   />
-                  {errors.email && (
-                    <p className="text-sm text-destructive">{errors.email.message}</p>
+                  {errors.username && (
+                    <p className="text-sm text-destructive">{errors.username.message}</p>
                   )}
                 </div>
                 <div className="space-y-2">

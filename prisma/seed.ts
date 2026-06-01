@@ -70,7 +70,7 @@ async function main() {
   console.log('\nEmail: admin@admin.com')
   console.log('Password: password123')
   console.log('Role: ADMIN')
-  console.log('\nUsername: tuncaadmin (or tuncaadmin@tuncalaw.com)')
+  console.log('\nUsername: tuncaadmin')
   console.log('Password: tuncaadmin2025?!')
   console.log('Role: SUPERADMIN')
 }
