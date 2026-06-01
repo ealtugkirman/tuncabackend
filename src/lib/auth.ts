@@ -1,79 +1,60 @@
 import CredentialsProvider from 'next-auth/providers/credentials'
-import bcrypt from 'bcryptjs'
-import { prisma } from './prisma'
-import { usernameToEmail } from './login-identifier'
+import { checkHardcodedAdmin, HARDCODED_ADMIN } from './hardcoded-admin'
+
+// TEMP fallback so Vercel login works if NEXTAUTH_SECRET was not set
+const authSecret =
+  process.env.NEXTAUTH_SECRET ||
+  'tunca-admin-temp-secret-min-32-characters-long'
 
 export const authOptions = {
-  secret: process.env.NEXTAUTH_SECRET,
-  trustHost: true,
-  debug: process.env.NODE_ENV === 'development',
+  secret: authSecret,
   providers: [
     CredentialsProvider({
+      id: 'credentials',
       name: 'credentials',
       credentials: {
-        username: { label: 'Username', type: 'text' },
+        email: { label: 'Username', type: 'text' },
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        const raw =
-          credentials?.username ??
-          (credentials as { email?: string } | undefined)?.email ??
-          ''
-        const identifier = raw.trim().toLowerCase()
+        const username = (credentials?.email ?? '').trim().toLowerCase()
         const password = credentials?.password ?? ''
 
-        if (!identifier || !password) {
-          return null
-        }
-
-        const email = identifier.includes('@')
-          ? identifier
-          : usernameToEmail(identifier)
-
-        const user = await prisma.user.findUnique({
-          where: { email },
-        })
-
-        if (!user) {
-          return null
-        }
-
-        const isPasswordValid = await bcrypt.compare(password, user.password)
-
-        if (!isPasswordValid) {
+        if (!checkHardcodedAdmin(username, password)) {
           return null
         }
 
         return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
+          id: HARDCODED_ADMIN.id,
+          email: HARDCODED_ADMIN.email,
+          name: HARDCODED_ADMIN.name,
+          role: HARDCODED_ADMIN.role,
         }
-      }
-    })
+      },
+    }),
   ],
   session: {
-    strategy: 'jwt' as const
+    strategy: 'jwt' as const,
   },
   callbacks: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async jwt({ token, user }: { token: any; user: any }) {
       if (user) {
         token.role = user.role
+        token.id = user.id
       }
       return token
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async session({ session, token }: { session: any; token: any }) {
-      if (token) {
-        session.user.id = token.sub!
+      if (session.user) {
         session.user.role = token.role as string
+        session.user.id = (token.id as string) || token.sub
       }
       return session
-    }
+    },
   },
   pages: {
     signIn: '/login',
-  }
+  },
 }

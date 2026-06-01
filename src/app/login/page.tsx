@@ -1,11 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { signIn, getSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
+import { useState, FormEvent } from 'react'
+import { signIn } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -13,139 +9,94 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Gavel, Loader2 } from 'lucide-react'
 
-const loginSchema = z.object({
-  username: z
-    .string()
-    .min(1, 'Username is required')
-    .regex(/^[a-zA-Z0-9._-]+$/, 'Username can only contain letters, numbers, dots, underscores, and hyphens'),
-  password: z.string().min(1, 'Password is required'),
-})
-
-type LoginForm = z.infer<typeof loginSchema>
-
 export default function AdminLogin() {
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
-  const router = useRouter()
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<LoginForm>({
-    resolver: zodResolver(loginSchema),
-  })
-
-  const onSubmit = async (data: LoginForm) => {
+  async function onSubmit(e: FormEvent) {
+    e.preventDefault()
     setIsLoading(true)
     setError('')
 
     try {
-      const username = data.username.trim()
-
       const result = await signIn('credentials', {
-        username,
-        email: username,
-        password: data.password,
+        email: username.trim().toLowerCase(),
+        password,
         redirect: false,
       })
 
-      if (result?.error) {
-        setError('Invalid credentials')
-        return
-      }
-
       if (result?.ok) {
-        router.push('/admin')
-        router.refresh()
+        window.location.href = '/admin'
         return
       }
 
-      const session = await getSession()
-      const userRole = (session?.user as { role?: string })?.role
-      if (userRole === 'ADMIN' || userRole === 'SUPERADMIN') {
-        router.push('/admin')
-        router.refresh()
-      } else {
-        setError('Access denied. Admin privileges required.')
-      }
+      setError('Kullanıcı adı veya şifre hatalı')
     } catch {
-      setError('An error occurred. Please try again.')
+      setError('Bir hata oluştu, tekrar deneyin')
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <div className="admin-app flex min-h-screen items-center justify-center bg-background px-4 py-12 sm:px-6 lg:px-8">
+    <div className="admin-app flex min-h-screen items-center justify-center bg-background px-4 py-12">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-border bg-card text-primary">
             <Gavel className="h-7 w-7" />
           </div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-            The Digital Gavel
-          </p>
-          <p className="mt-1 text-lg font-semibold text-foreground">
-            Legal<span className="text-primary">Command</span>
-          </p>
+          <p className="text-lg font-semibold text-foreground">Admin Giriş</p>
         </div>
         <Card className="border-border/80 shadow-lg">
           <CardHeader>
-            <CardTitle className="text-center text-2xl">Admin login</CardTitle>
+            <CardTitle className="text-center text-2xl">Giriş</CardTitle>
             <CardDescription className="text-center">
-              Sign in to access the admin panel
+              Kullanıcı adı ve şifrenizi girin
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
+            <form className="space-y-6" onSubmit={onSubmit}>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="username">Username</Label>
+                  <Label htmlFor="username">Kullanıcı adı</Label>
                   <Input
-                    {...register('username')}
                     id="username"
                     type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
                     autoComplete="username"
-                    className="w-full"
+                    required
                   />
-                  {errors.username && (
-                    <p className="text-sm text-destructive">{errors.username.message}</p>
-                  )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password">Şifre</Label>
                   <Input
-                    {...register('password')}
                     id="password"
                     type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     autoComplete="current-password"
-                    className="w-full"
+                    required
                   />
-                  {errors.password && (
-                    <p className="text-sm text-destructive">{errors.password.message}</p>
-                  )}
                 </div>
               </div>
 
-              {error && (
+              {error ? (
                 <Alert variant="destructive">
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
-              )}
+              ) : null}
 
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="w-full"
-              >
+              <Button type="submit" disabled={isLoading} className="w-full">
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Signing in...
+                    Giriş yapılıyor...
                   </>
                 ) : (
-                  'Sign in'
+                  'Giriş yap'
                 )}
               </Button>
             </form>
