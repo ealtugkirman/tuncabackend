@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Gavel, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 
 export default function AdminLogin() {
   const [username, setUsername] = useState('')
@@ -44,10 +44,8 @@ export default function AdminLogin() {
     <div className="admin-app flex min-h-screen items-center justify-center bg-background px-4 py-12">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-border bg-card text-primary">
-            <Gavel className="h-7 w-7" />
-          </div>
-          <p className="text-lg font-semibold text-foreground">Admin Giriş</p>
+          <p className="text-lg font-semibold text-foreground">Tunca Hukuk</p>
+          <p className="mt-1 text-sm text-muted-foreground">Yönetim paneli</p>
         </div>
         <Card className="border-border/80 shadow-lg">
           <CardHeader>

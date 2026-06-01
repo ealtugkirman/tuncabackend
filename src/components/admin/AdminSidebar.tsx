@@ -35,7 +35,7 @@ export default function AdminSidebar({ user }: AdminSidebarProps) {
   const pathname = usePathname()
 
   const navigation = [
-    { name: 'Command', href: '/admin', icon: LayoutDashboard },
+    { name: 'Ana Sayfa', href: '/admin', icon: LayoutDashboard },
     { name: 'Lawyers', href: '/admin/lawyers', icon: Users },
     { name: 'Announcements', href: '/admin/announcements', icon: Megaphone },
     { name: 'Events', href: '/admin/events', icon: Calendar },
@@ -55,8 +55,8 @@ export default function AdminSidebar({ user }: AdminSidebarProps) {
         <div className="flex items-center gap-2.5">
           <Hexagon className="h-5 w-5 shrink-0 text-primary" strokeWidth={1.5} />
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-foreground">Sovereign</p>
-            <p className="text-[10px] text-muted-foreground">Intelligence v2.4</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-foreground">Tunca Hukuk</p>
+            <p className="text-[10px] text-muted-foreground">Yönetim paneli</p>
           </div>
         </div>
       </div>
@@ -89,9 +89,6 @@ export default function AdminSidebar({ user }: AdminSidebarProps) {
       </nav>
 
       <div className="space-y-2 border-t border-border p-3">
-        <p className="px-1 text-[10px] text-muted-foreground">
-          <span className="text-primary">●</span> Operational
-        </p>
         <div className="flex items-center gap-2 px-1">
           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border bg-background text-[10px] font-medium text-muted-foreground">
             {user.name.slice(0, 2).toUpperCase()}

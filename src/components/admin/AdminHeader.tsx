@@ -13,8 +13,8 @@ type AdminHeaderProps = {
 }
 
 function roleLabel(role: string) {
-  if (role === 'SUPERADMIN') return 'Managing Partner'
-  if (role === 'ADMIN') return 'Administrator'
+  if (role === 'SUPERADMIN') return 'Süper yönetici'
+  if (role === 'ADMIN') return 'Yönetici'
   if (role === 'EDITOR') return 'Editor'
   return role
 }
@@ -30,10 +30,6 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
   return (
     <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center border-b border-border bg-background px-4 md:px-6">
       <div className="flex w-full min-w-0 items-center gap-3 md:gap-5">
-        <span className="shrink-0 text-xs font-semibold tracking-[0.2em] text-primary md:text-sm">
-          OBSIDIAN
-        </span>
-
         <div className="hidden min-w-0 flex-1 md:block">
           <label className="relative block">
             <span className="sr-only">Search</span>
@@ -44,7 +40,7 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
             <input
               type="search"
               readOnly
-              placeholder="Search command center…"
+              placeholder="Ara…"
               className="h-9 w-full max-w-xl rounded-md border border-border bg-background py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             />
           </label>
@@ -62,7 +58,7 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
           <button
             type="button"
             className="hidden rounded-md p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground sm:inline-flex"
-            aria-label="Command menu"
+            aria-label="Menü"
           >
             <LayoutGrid className="h-4 w-4" />
           </button>

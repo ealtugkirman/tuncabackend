@@ -31,10 +31,6 @@ export function AdminFormShell({ title, subtitle, children, actions, className }
             <ArrowLeft className="h-4 w-4" />
             Back
           </Button>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary shadow-[0_0_8px_hsl(var(--primary))]" />
-            <span>System status: Operational</span>
-          </div>
           <div>
             <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">{title}</h1>
             {subtitle ? <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p> : null}

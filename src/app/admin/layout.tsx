@@ -1,6 +1,7 @@
 import { getCurrentUser } from '@/lib/auth-utils'
 import AdminSidebar from '@/components/admin/AdminSidebar'
 import AdminHeader from '@/components/admin/AdminHeader'
+import { DbConnectionBanner } from '@/components/admin/DbConnectionBanner'
 import Link from 'next/link'
 
 /** Admin uses session + DB; never prerender at build time (Vercel). */
@@ -39,6 +40,7 @@ export default async function AdminLayout({
         <div className="relative flex min-h-screen min-w-0 flex-1 flex-col">
           <AdminHeader user={user} />
           <main className="relative flex-1 overflow-x-hidden p-4 md:p-6 lg:p-8">
+            <DbConnectionBanner />
             {children}
           </main>
         </div>

@@ -13,9 +13,6 @@ import {
   Newspaper,
   MessageSquare,
   UserSearch,
-  Radio,
-  Database,
-  Shield,
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -98,43 +95,14 @@ export default async function AdminDashboard() {
     { label: 'STAT 07', category: 'NEWSLETTER', value: newsletterCount, icon: Newspaper },
   ]
 
-  const now = new Date()
-  const fmtTime = (d: Date) =>
-    d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) +
-    ' UTC'
-
-  const systemLog = [
-    {
-      icon: Shield,
-      title: 'Admin session active',
-      detail: `Authenticated as ${user?.name ?? 'User'}`,
-      time: fmtTime(now),
-    },
-    {
-      icon: Database,
-      title: 'Legal DB sync',
-      detail: 'Prisma connection pool ready',
-      time: fmtTime(new Date(now.getTime() - 2 * 60 * 1000)),
-    },
-    {
-      icon: Radio,
-      title: 'Live monitoring',
-      detail: 'Contact & career queues polled',
-      time: fmtTime(new Date(now.getTime() - 5 * 60 * 1000)),
-    },
-  ]
-
   return (
     <div className="space-y-8 pb-20">
       <div>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-          Central operations
-        </p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground md:text-3xl">
-          Dashboard overview
+        <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">
+          Ana sayfa
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Welcome back, {user?.name}. Here is your firm control center.
+          Hoş geldiniz, {user?.name}.
         </p>
       </div>
 
@@ -171,14 +139,7 @@ export default async function AdminDashboard() {
                 </div>
                 <p className="text-sm font-medium text-foreground">No messages yet</p>
                 <p className="mt-1 max-w-xs text-xs text-muted-foreground">
-                  Incoming inquiries will appear here for live triage.
-                </p>
-                <p className="mt-6 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-emerald-400/90">
-                  <span className="relative flex h-2 w-2">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-                  </span>
-                  Live monitoring active
+                  Yeni iletişim mesajları burada listelenir.
                 </p>
               </div>
             ) : (
@@ -281,31 +242,6 @@ export default async function AdminDashboard() {
         </Card>
       </div>
 
-      <Card className="border-border/80 bg-card/90 shadow-md">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base font-semibold">Global system log</CardTitle>
-          <p className="text-xs text-muted-foreground">Audit trail and infrastructure signals</p>
-        </CardHeader>
-        <CardContent>
-          <div className="divide-y divide-border rounded-lg border border-border/60 bg-background/40">
-            {systemLog.map((entry, i) => (
-              <div
-                key={i}
-                className="flex flex-wrap items-start gap-4 px-4 py-3 first:rounded-t-lg last:rounded-b-lg"
-              >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <entry.icon className="h-4 w-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium text-foreground">{entry.title}</p>
-                  <p className="text-sm text-muted-foreground">{entry.detail}</p>
-                </div>
-                <time className="shrink-0 font-mono text-xs text-muted-foreground">{entry.time}</time>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   )
 }

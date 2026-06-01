@@ -14,9 +14,8 @@ Set these in your Vercel dashboard under Project Settings > Environment Variable
 ### Required Variables
 
 ```env
-# Database
-DATABASE_URL="postgresql://username:password@host:port/database?schema=public"
-DIRECT_URL="postgresql://username:password@host:port/database?schema=public"
+# Database — on Vercel use Supabase *Transaction pooler* (port 6543), not the direct 5432 URL
+DATABASE_URL="postgresql://postgres.PROJECT_REF:PASSWORD@aws-0-REGION.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1"
 
 # NextAuth
 NEXTAUTH_URL="https://tunca-admin.digitalvoyage.agency"
@@ -90,7 +89,7 @@ npx prisma migrate deploy
 
 1. In Vercel → **Settings** → **Environment Variables**, add:
    - `ADMIN_SETUP_SECRET` = long random string (at least 16 characters), e.g. from `openssl rand -base64 32`
-   - Confirm `DATABASE_URL`, `DIRECT_URL`, `NEXTAUTH_URL`, `NEXTAUTH_SECRET` are set for **Production**
+   - Confirm `DATABASE_URL` (Supabase pooler 6543), `NEXTAUTH_URL`, `NEXTAUTH_SECRET` are set for **Production**
 2. **Redeploy** the project (env vars apply after redeploy).
 3. Run once from your machine (replace domain and secret):
 
@@ -131,7 +130,8 @@ npx tsx scripts/setup-admin-user.ts
 
 ### Common Issues
 
-1. **Database Connection**: Ensure `DATABASE_URL` is correct
+1. **No data on deployment / empty lists**: Open `https://YOUR-DOMAIN/api/health/db` — if `ok: false`, fix `DATABASE_URL` on Vercel (Supabase Transaction pooler, port **6543**, `?pgbouncer=true`). Redeploy after changing env vars. Local `.env` and Vercel often point to different databases; production may also be empty until you migrate/seed.
+2. **Database Connection**: Ensure `DATABASE_URL` is correct
 2. **Invalid credentials on login**: Run `npx tsx scripts/setup-admin-user.ts` against production `DATABASE_URL`
 3. **NextAuth Issues**: Check `NEXTAUTH_URL` matches the deployed domain and `NEXTAUTH_SECRET` is set
 4. **Image Uploads**: Verify Cloudinary configuration
