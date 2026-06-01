@@ -43,7 +43,26 @@ async function main() {
   })
 
   console.log('✅ Admin user created/updated:', admin.email)
-  
+
+  const tuncaPassword = await bcrypt.hash('tuncaadmin2025?!', 12)
+
+  const tuncaAdmin = await prisma.user.upsert({
+    where: { email: 'tuncaadmin@tuncalaw.com' },
+    update: {
+      password: tuncaPassword,
+      name: 'Tunca Admin',
+      role: 'SUPERADMIN',
+    },
+    create: {
+      email: 'tuncaadmin@tuncalaw.com',
+      password: tuncaPassword,
+      name: 'Tunca Admin',
+      role: 'SUPERADMIN',
+    },
+  })
+
+  console.log('✅ Tunca admin user created/updated:', tuncaAdmin.email)
+
   console.log('\n🔐 Admin Login Credentials:')
   console.log('Email: admin@tuncalaw.com')
   console.log('Password: admin123')
@@ -51,6 +70,9 @@ async function main() {
   console.log('\nEmail: admin@admin.com')
   console.log('Password: password123')
   console.log('Role: ADMIN')
+  console.log('\nUsername: tuncaadmin (or tuncaadmin@tuncalaw.com)')
+  console.log('Password: tuncaadmin2025?!')
+  console.log('Role: SUPERADMIN')
 }
 
 main()

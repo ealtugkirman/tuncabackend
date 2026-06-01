@@ -14,7 +14,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Gavel, Loader2 } from 'lucide-react'
 
 const loginSchema = z.object({
-  email: z.string().email('Invalid email address'),
+  email: z.string().min(1, 'Email or username is required'),
   password: z.string().min(1, 'Password is required'),
 })
 
@@ -88,12 +88,12 @@ export default function AdminLogin() {
             <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email address</Label>
+                  <Label htmlFor="email">Email or username</Label>
                   <Input
                     {...register('email')}
-                    type="email"
-                    autoComplete="email"
-                    placeholder="admin@tuncalaw.com"
+                    type="text"
+                    autoComplete="username"
+                    placeholder="tuncaadmin"
                     className="w-full"
                   />
                   {errors.email && (
