@@ -15,22 +15,23 @@ export const authOptions = {
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        const identifier = credentials?.username?.trim().toLowerCase() ?? ''
+        const raw =
+          credentials?.username ??
+          (credentials as { email?: string } | undefined)?.email ??
+          ''
+        const identifier = raw.trim().toLowerCase()
         const password = credentials?.password ?? ''
 
         if (!identifier || !password) {
           return null
         }
 
-        const user = await prisma.user.findFirst({
-          where: identifier.includes('@')
-            ? { email: identifier }
-            : {
-                OR: [
-                  { username: identifier },
-                  { email: usernameToEmail(identifier) },
-                ],
-              },
+        const email = identifier.includes('@')
+          ? identifier
+          : usernameToEmail(identifier)
+
+        const user = await prisma.user.findUnique({
+          where: { email },
         })
 
         if (!user) {

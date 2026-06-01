@@ -86,20 +86,32 @@ Click "Deploy" and wait for the build to complete.
 npx prisma migrate deploy
 ```
 
-### 2. Create admin login (required once per database)
+### 2. Create admin login on Vercel (recommended)
 
-Production DB does not include seed users automatically. With production `DATABASE_URL` loaded (e.g. `vercel env pull`):
+1. In Vercel → **Settings** → **Environment Variables**, add:
+   - `ADMIN_SETUP_SECRET` = long random string (at least 16 characters), e.g. from `openssl rand -base64 32`
+   - Confirm `DATABASE_URL`, `DIRECT_URL`, `NEXTAUTH_URL`, `NEXTAUTH_SECRET` are set for **Production**
+2. **Redeploy** the project (env vars apply after redeploy).
+3. Run once from your machine (replace domain and secret):
+
+```bash
+curl -X POST "https://tunca-admin.digitalvoyage.agency/api/admin/bootstrap" \
+  -H "x-admin-setup-secret: YOUR_ADMIN_SETUP_SECRET"
+```
+
+You should see JSON: `"Admin user created or updated."`
+
+4. Log in at `/login`:
+   - **Username:** `tuncaadmin`
+   - **Password:** `tuncaadmin2025?!` (default; change via bootstrap code if needed)
+
+5. Optional: remove `ADMIN_SETUP_SECRET` from Vercel after success, or rotate it.
+
+**Alternative (local CLI):** with production `DATABASE_URL` in `.env`:
 
 ```bash
 npx tsx scripts/setup-admin-user.ts
 ```
-
-Default login at `/login`:
-
-- **Username:** `tuncaadmin`
-- **Password:** set in `scripts/setup-admin-user.ts` (change there before running if needed)
-
-Also set `NEXTAUTH_URL` to your live URL (e.g. `https://tunca-admin.digitalvoyage.agency`) and a strong `NEXTAUTH_SECRET`.
 
 ### 3. Test the Application
 

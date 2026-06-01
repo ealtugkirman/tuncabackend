@@ -41,23 +41,33 @@ export default function AdminLogin() {
     setError('')
 
     try {
+      const username = data.username.trim()
+
       const result = await signIn('credentials', {
-        username: data.username,
+        username,
+        email: username,
         password: data.password,
         redirect: false,
       })
 
       if (result?.error) {
         setError('Invalid credentials')
+        return
+      }
+
+      if (result?.ok) {
+        router.push('/admin')
+        router.refresh()
+        return
+      }
+
+      const session = await getSession()
+      const userRole = (session?.user as { role?: string })?.role
+      if (userRole === 'ADMIN' || userRole === 'SUPERADMIN') {
+        router.push('/admin')
+        router.refresh()
       } else {
-        // Check if user has admin access
-        const session = await getSession()
-        const userRole = (session?.user as { role?: string })?.role
-        if (userRole === 'ADMIN' || userRole === 'SUPERADMIN') {
-          router.push('/admin')
-        } else {
-          setError('Access denied. Admin privileges required.')
-        }
+        setError('Access denied. Admin privileges required.')
       }
     } catch {
       setError('An error occurred. Please try again.')
