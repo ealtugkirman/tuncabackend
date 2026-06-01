@@ -2,6 +2,24 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { baseSEO } from '@/lib/seo'
 
+export const dynamic = 'force-dynamic'
+
+function staticSitemapUrls(siteUrl: string): string {
+  const lastmod = new Date().toISOString()
+  const pages = ['', '/lawyers', '/announcements', '/events', '/publications']
+  return pages
+    .map(
+      (path) => `
+  <url>
+    <loc>${siteUrl}${path}</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>${path === '' ? '1.0' : '0.8'}</priority>
+  </url>`
+    )
+    .join('')
+}
+
 export async function GET() {
   try {
     const siteUrl = baseSEO.siteUrl
@@ -110,6 +128,15 @@ export async function GET() {
     })
   } catch (error) {
     console.error('Error generating sitemap:', error)
-    return new NextResponse('Error generating sitemap', { status: 500 })
+    const siteUrl = baseSEO.siteUrl
+    const fallback = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${staticSitemapUrls(siteUrl)}
+</urlset>`
+    return new NextResponse(fallback, {
+      headers: {
+        'Content-Type': 'application/xml',
+        'Cache-Control': 'public, max-age=300, s-maxage=300',
+      },
+    })
   }
 }

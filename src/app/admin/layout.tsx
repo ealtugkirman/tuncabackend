@@ -3,6 +3,9 @@ import AdminSidebar from '@/components/admin/AdminSidebar'
 import AdminHeader from '@/components/admin/AdminHeader'
 import Link from 'next/link'
 
+/** Admin uses session + DB; never prerender at build time (Vercel). */
+export const dynamic = 'force-dynamic'
+
 export default async function AdminLayout({
   children,
 }: {
