@@ -111,3 +111,32 @@
     -webkit-line-clamp: 4;
   }
 }
+
+/* Admin: TipTap / rich text and legacy light utility overrides */
+.admin-app .ProseMirror {
+  background: transparent;
+  color: hsl(var(--foreground));
+  caret-color: hsl(var(--primary));
+}
+
+.admin-app .ProseMirror:focus {
+  outline: none;
+}
+
+.admin-app .ProseMirror p.is-editor-empty:first-child::before {
+  color: hsl(var(--muted-foreground));
+}
+
+.admin-app .tiptap table {
+  border-collapse: collapse;
+}
+
+.admin-app .tiptap table td,
+.admin-app .tiptap table th {
+  border: 1px solid hsl(var(--border));
+  padding: 0.375rem 0.5rem;
+}
+
+.admin-app .tiptap table th {
+  background: hsl(var(--muted));
+}

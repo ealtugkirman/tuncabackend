@@ -80,10 +80,10 @@ export default function EventDetailPage({ params }: EventDetailPageProps) {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-[40vh]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Yükleniyor...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Yükleniyor...</p>
         </div>
       </div>
     )
@@ -91,13 +91,13 @@ export default function EventDetailPage({ params }: EventDetailPageProps) {
 
   if (!event) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-[40vh]">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Etkinlik Bulunamadı</h1>
-          <p className="text-gray-600 mb-4">Aradığınız etkinlik bulunamadı.</p>
+          <h1 className="text-2xl font-bold text-foreground mb-4">Etkinlik Bulunamadı</h1>
+          <p className="text-muted-foreground mb-4">Aradığınız etkinlik bulunamadı.</p>
           <Link
             href="/admin/events"
-            className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
+            className="bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:opacity-90"
           >
             Etkinliklere Dön
           </Link>
@@ -112,20 +112,20 @@ export default function EventDetailPage({ params }: EventDetailPageProps) {
         <div className="flex items-center space-x-4">
           <Link
             href="/admin/events"
-            className="flex items-center text-gray-600 hover:text-gray-900"
+            className="flex items-center text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Geri
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{event.title}</h1>
-            <p className="text-gray-600">Etkinlik detayları</p>
+            <h1 className="text-2xl font-bold text-foreground">{event.title}</h1>
+            <p className="text-muted-foreground">Etkinlik detayları</p>
           </div>
         </div>
         <div className="flex items-center space-x-2">
           <Link
             href={`/admin/events/${event.id}/edit`}
-            className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center space-x-2"
+            className="bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:opacity-90 flex items-center space-x-2"
           >
             <Edit className="w-4 h-4" />
             <span>Düzenle</span>
@@ -145,8 +145,8 @@ export default function EventDetailPage({ params }: EventDetailPageProps) {
         <div className="lg:col-span-2 space-y-6">
           {/* Event Image */}
           {event.image && (
-            <div className="bg-white shadow rounded-lg p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Görsel</h3>
+            <div className="bg-card shadow rounded-lg p-6">
+              <h3 className="text-lg font-medium text-foreground mb-4">Görsel</h3>
               <img
                 src={event.image}
                 alt={event.title}
@@ -157,8 +157,8 @@ export default function EventDetailPage({ params }: EventDetailPageProps) {
 
           {/* Event Gallery */}
           {event.gallery && event.gallery.length > 0 && (
-            <div className="bg-white shadow rounded-lg p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Etkinlik Galerisi</h3>
+            <div className="bg-card shadow rounded-lg p-6">
+              <h3 className="text-lg font-medium text-foreground mb-4">Etkinlik Galerisi</h3>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {event.gallery.map((image, index) => (
                   <div key={index} className="relative group">
@@ -171,15 +171,15 @@ export default function EventDetailPage({ params }: EventDetailPageProps) {
                   </div>
                 ))}
               </div>
-              <p className="text-sm text-gray-500 mt-2">
+              <p className="text-sm text-muted-foreground mt-2">
                 {event.gallery.length} resim - Resimlere tıklayarak büyütebilirsiniz
               </p>
             </div>
           )}
 
           {/* Event Content */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">İçerik</h3>
+          <div className="bg-card shadow rounded-lg p-6">
+            <h3 className="text-lg font-medium text-foreground mb-4">İçerik</h3>
             <div 
               className="prose max-w-none"
               dangerouslySetInnerHTML={{ __html: event.content }}
@@ -189,16 +189,16 @@ export default function EventDetailPage({ params }: EventDetailPageProps) {
 
         <div className="space-y-6">
           {/* Event Status */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Durum</h3>
+          <div className="bg-card shadow rounded-lg p-6">
+            <h3 className="text-lg font-medium text-foreground mb-4">Durum</h3>
             <div className="flex items-center space-x-2">
               {event.published ? (
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-500/15 text-green-400">
                   <Eye className="w-4 h-4 mr-2" />
                   Yayında
                 </span>
               ) : (
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-muted text-foreground">
                   <EyeOff className="w-4 h-4 mr-2" />
                   Taslak
                 </span>
@@ -207,58 +207,58 @@ export default function EventDetailPage({ params }: EventDetailPageProps) {
           </div>
 
           {/* Event Details */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Detaylar</h3>
+          <div className="bg-card shadow rounded-lg p-6">
+            <h3 className="text-lg font-medium text-foreground mb-4">Detaylar</h3>
             <div className="space-y-4">
               <div className="flex items-center space-x-3">
-                <Calendar className="w-5 h-5 text-gray-400" />
+                <Calendar className="w-5 h-5 text-muted-foreground" />
                 <div>
-                  <p className="text-sm font-medium text-gray-900">Tarih</p>
-                  <p className="text-sm text-gray-600">{event.date}</p>
+                  <p className="text-sm font-medium text-foreground">Tarih</p>
+                  <p className="text-sm text-muted-foreground">{event.date}</p>
                 </div>
               </div>
 
               <div className="flex items-center space-x-3">
-                <Tag className="w-5 h-5 text-gray-400" />
+                <Tag className="w-5 h-5 text-muted-foreground" />
                 <div>
-                  <p className="text-sm font-medium text-gray-900">Etkinlik Türü</p>
-                  <p className="text-sm text-gray-600">{event.eventType}</p>
+                  <p className="text-sm font-medium text-foreground">Etkinlik Türü</p>
+                  <p className="text-sm text-muted-foreground">{event.eventType}</p>
                 </div>
               </div>
 
               <div className="flex items-center space-x-3">
-                <Tag className="w-5 h-5 text-gray-400" />
+                <Tag className="w-5 h-5 text-muted-foreground" />
                 <div>
-                  <p className="text-sm font-medium text-gray-900">Kategori</p>
-                  <p className="text-sm text-gray-600">{event.category}</p>
+                  <p className="text-sm font-medium text-foreground">Kategori</p>
+                  <p className="text-sm text-muted-foreground">{event.category}</p>
                 </div>
               </div>
 
               {event.location && (
                 <div className="flex items-center space-x-3">
-                  <MapPin className="w-5 h-5 text-gray-400" />
+                  <MapPin className="w-5 h-5 text-muted-foreground" />
                   <div>
-                    <p className="text-sm font-medium text-gray-900">Konum</p>
-                    <p className="text-sm text-gray-600">{event.location}</p>
+                    <p className="text-sm font-medium text-foreground">Konum</p>
+                    <p className="text-sm text-muted-foreground">{event.location}</p>
                   </div>
                 </div>
               )}
 
               <div className="flex items-center space-x-3">
-                <Calendar className="w-5 h-5 text-gray-400" />
+                <Calendar className="w-5 h-5 text-muted-foreground" />
                 <div>
-                  <p className="text-sm font-medium text-gray-900">Oluşturulma Tarihi</p>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm font-medium text-foreground">Oluşturulma Tarihi</p>
+                  <p className="text-sm text-muted-foreground">
                     {new Date(event.createdAt).toLocaleDateString('tr-TR')}
                   </p>
                 </div>
               </div>
 
               <div className="flex items-center space-x-3">
-                <Calendar className="w-5 h-5 text-gray-400" />
+                <Calendar className="w-5 h-5 text-muted-foreground" />
                 <div>
-                  <p className="text-sm font-medium text-gray-900">Son Güncelleme</p>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm font-medium text-foreground">Son Güncelleme</p>
+                  <p className="text-sm text-muted-foreground">
                     {new Date(event.updatedAt).toLocaleDateString('tr-TR')}
                   </p>
                 </div>
@@ -267,9 +267,9 @@ export default function EventDetailPage({ params }: EventDetailPageProps) {
           </div>
 
           {/* Event Excerpt */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Özet</h3>
-            <p className="text-sm text-gray-600">{event.excerpt}</p>
+          <div className="bg-card shadow rounded-lg p-6">
+            <h3 className="text-lg font-medium text-foreground mb-4">Özet</h3>
+            <p className="text-sm text-muted-foreground">{event.excerpt}</p>
           </div>
         </div>
       </div>

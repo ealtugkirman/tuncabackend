@@ -127,7 +127,7 @@ export default function LawyerOrderPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-[40vh]">
         <div className="text-center">
           <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4" />
           <p className="text-muted-foreground">{t('common.loading')}</p>

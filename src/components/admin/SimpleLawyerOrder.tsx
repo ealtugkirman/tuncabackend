@@ -98,7 +98,7 @@ export function SimpleLawyerOrder({ lawyers, onSave }: SimpleLawyerOrderProps) {
     if (lawyer.isFounder && lawyer.isPartner) return <Crown className="w-4 h-4 text-yellow-500" />
     if (lawyer.isFounder) return <Crown className="w-4 h-4 text-amber-500" />
     if (lawyer.isPartner) return <Star className="w-4 h-4 text-blue-500" />
-    return <User className="w-4 h-4 text-gray-500" />
+    return <User className="w-4 h-4 text-muted-foreground" />
   }
 
   const getRoleText = (lawyer: Lawyer) => {
@@ -172,8 +172,8 @@ export function SimpleLawyerOrder({ lawyers, onSave }: SimpleLawyerOrderProps) {
               {...provided.droppableProps}
               className={`space-y-2 p-4 rounded-lg border-2 border-dashed transition-colors ${
                 snapshot.isDraggingOver 
-                  ? 'border-blue-400 bg-blue-50 dark:bg-blue-950' 
-                  : 'border-gray-200 dark:border-gray-700'
+                  ? 'border-blue-400 bg-primary/10 dark:bg-blue-950' 
+                  : 'border-border dark:border-gray-700'
               }`}
             >
               {items.map((lawyer, index) => (
@@ -193,9 +193,9 @@ export function SimpleLawyerOrder({ lawyers, onSave }: SimpleLawyerOrderProps) {
                           {/* Drag Handle */}
                           <div
                             {...provided.dragHandleProps}
-                            className="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-grab active:cursor-grabbing transition-colors"
+                            className="flex items-center justify-center w-8 h-8 rounded-lg bg-muted dark:bg-secondary hover:bg-muted dark:hover:bg-gray-700 cursor-grab active:cursor-grabbing transition-colors"
                           >
-                            <GripVertical className="w-5 h-5 text-gray-400" />
+                            <GripVertical className="w-5 h-5 text-muted-foreground" />
                           </div>
 
                           {/* Order Number */}
@@ -204,7 +204,7 @@ export function SimpleLawyerOrder({ lawyers, onSave }: SimpleLawyerOrderProps) {
                           </div>
 
                           {/* Lawyer Image */}
-                          <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                          <div className="w-12 h-12 rounded-full overflow-hidden bg-muted dark:bg-gray-700 flex items-center justify-center">
                             {lawyer.image ? (
                               <img
                                 src={lawyer.image}
@@ -216,7 +216,7 @@ export function SimpleLawyerOrder({ lawyers, onSave }: SimpleLawyerOrderProps) {
                                 }}
                               />
                             ) : null}
-                            <User className="w-6 h-6 text-gray-400" style={{ display: lawyer.image ? 'none' : 'flex' }} />
+                            <User className="w-6 h-6 text-muted-foreground" style={{ display: lawyer.image ? 'none' : 'flex' }} />
                           </div>
 
                           {/* Lawyer Info */}
@@ -249,7 +249,7 @@ export function SimpleLawyerOrder({ lawyers, onSave }: SimpleLawyerOrderProps) {
       </DragDropContext>
 
       {/* Instructions */}
-      <Card className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+      <Card className="bg-primary/10 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
         <CardContent className="p-4">
           <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
             Nasıl Sıralama Yapılır?

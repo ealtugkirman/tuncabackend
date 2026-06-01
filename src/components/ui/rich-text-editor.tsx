@@ -90,10 +90,12 @@ export function RichTextEditor({
     editorProps: {
       attributes: {
         class: cn(
-          'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none min-h-[200px] p-4',
+          'prose prose-sm prose-invert max-w-none focus:outline-none min-h-[200px] p-4',
           'prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground',
-          'prose-code:text-foreground prose-pre:bg-muted prose-blockquote:text-muted-foreground',
-          'prose-li:text-foreground prose-a:text-primary hover:prose-a:text-primary/80'
+          'prose-code:text-foreground prose-pre:bg-muted prose-pre:text-foreground',
+          'prose-blockquote:border-border prose-blockquote:text-muted-foreground',
+          'prose-li:text-foreground prose-a:text-primary hover:prose-a:text-primary/80',
+          'prose-th:border-border prose-td:border-border'
         ),
       },
     },
@@ -122,9 +124,9 @@ export function RichTextEditor({
   }
 
   return (
-    <div className={cn('border rounded-lg', className)}>
+    <div className={cn('overflow-hidden rounded-lg border border-border bg-card', className)}>
       {/* Toolbar */}
-      <div className="border-b p-2 flex flex-wrap gap-1">
+      <div className="flex flex-wrap gap-1 border-b border-border bg-muted/40 p-2">
         {/* Text Formatting */}
         <div className="flex gap-1">
           <Button
@@ -333,7 +335,7 @@ export function RichTextEditor({
       </div>
 
       {/* Editor Content */}
-      <div className="min-h-[200px] max-h-[500px] overflow-y-auto">
+      <div className="min-h-[200px] max-h-[500px] overflow-y-auto bg-muted/20">
         <EditorContent editor={editor} />
       </div>
     </div>

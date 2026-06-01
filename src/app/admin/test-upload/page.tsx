@@ -28,20 +28,20 @@ export default function TestUploadPage() {
         </div>
 
         {imageUrl && (
-          <div className="bg-gray-50 p-4 rounded-lg">
+          <div className="bg-muted p-4 rounded-lg">
             <h3 className="font-semibold mb-2">Upload Results:</h3>
             <div className="space-y-2 text-sm">
               <div>
                 <strong>URL:</strong>
                 <br />
-                <code className="bg-white p-2 rounded border block mt-1 break-all">
+                <code className="bg-card p-2 rounded border block mt-1 break-all">
                   {imageUrl}
                 </code>
               </div>
               <div>
                 <strong>Public ID:</strong>
                 <br />
-                <code className="bg-white p-2 rounded border block mt-1">
+                <code className="bg-card p-2 rounded border block mt-1">
                   {publicId}
                 </code>
               </div>
@@ -49,7 +49,7 @@ export default function TestUploadPage() {
           </div>
         )}
 
-        <div className="bg-blue-50 p-4 rounded-lg">
+        <div className="bg-primary/10 p-4 rounded-lg">
           <h3 className="font-semibold mb-2">Instructions:</h3>
           <ol className="list-decimal list-inside space-y-1 text-sm">
             <li>Make sure you have set up your Cloudinary environment variables</li>

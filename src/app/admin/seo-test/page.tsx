@@ -89,14 +89,14 @@ ${JSON.stringify(data.structuredData, null, 2)}
   return (
     <div className="max-w-6xl mx-auto p-6">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">SEO Test Aracı</h1>
-        <p className="text-gray-600">SEO meta tag'lerini ve structured data'yı test edin</p>
+        <h1 className="text-3xl font-bold text-foreground mb-2">SEO Test Aracı</h1>
+        <p className="text-muted-foreground">SEO meta tag'lerini ve structured data'yı test edin</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Controls */}
         <div className="space-y-6">
-          <div className="bg-white shadow rounded-lg p-6">
+          <div className="bg-card shadow rounded-lg p-6">
             <h2 className="text-lg font-semibold mb-4 flex items-center">
               <Search className="w-5 h-5 mr-2" />
               SEO Verisi Seç
@@ -104,13 +104,13 @@ ${JSON.stringify(data.structuredData, null, 2)}
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
                   İçerik Türü
                 </label>
                 <select
                   value={selectedType}
                   onChange={(e) => setSelectedType(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
                 >
                   {seoTypes.map(type => (
                     <option key={type.value} value={type.value}>
@@ -122,14 +122,14 @@ ${JSON.stringify(data.structuredData, null, 2)}
 
               {selectedType !== 'homepage' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">
                     ID
                   </label>
                   <input
                     type="text"
                     value={selectedId}
                     onChange={(e) => setSelectedId(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
                     placeholder="Örnek: lawyer-1"
                   />
                 </div>
@@ -138,7 +138,7 @@ ${JSON.stringify(data.structuredData, null, 2)}
               <button
                 onClick={fetchSEOData}
                 disabled={loading}
-                className="w-full bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 disabled:opacity-50 flex items-center justify-center"
+                className="w-full bg-primary text-primary-foreground px-4 py-2 rounded-md hover:opacity-90 disabled:opacity-50 flex items-center justify-center"
               >
                 {loading ? 'Yükleniyor...' : 'SEO Verisini Getir'}
               </button>
@@ -146,7 +146,7 @@ ${JSON.stringify(data.structuredData, null, 2)}
           </div>
 
           {/* Quick Links */}
-          <div className="bg-white shadow rounded-lg p-6">
+          <div className="bg-card shadow rounded-lg p-6">
             <h3 className="text-lg font-semibold mb-4 flex items-center">
               <Globe className="w-5 h-5 mr-2" />
               SEO Endpoint'leri
@@ -154,19 +154,19 @@ ${JSON.stringify(data.structuredData, null, 2)}
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span>Sitemap:</span>
-                <a href="/sitemap.xml" target="_blank" className="text-indigo-600 hover:underline">
+                <a href="/sitemap.xml" target="_blank" className="text-primary hover:underline">
                   /sitemap.xml
                 </a>
               </div>
               <div className="flex justify-between">
                 <span>Robots.txt:</span>
-                <a href="/robots.txt" target="_blank" className="text-indigo-600 hover:underline">
+                <a href="/robots.txt" target="_blank" className="text-primary hover:underline">
                   /robots.txt
                 </a>
               </div>
               <div className="flex justify-between">
                 <span>Homepage SEO:</span>
-                <a href="/api/seo/homepage" target="_blank" className="text-indigo-600 hover:underline">
+                <a href="/api/seo/homepage" target="_blank" className="text-primary hover:underline">
                   /api/seo/homepage
                 </a>
               </div>
@@ -185,22 +185,22 @@ ${JSON.stringify(data.structuredData, null, 2)}
           {seoData && (
             <>
               {/* Preview */}
-              <div className="bg-white shadow rounded-lg p-6">
+              <div className="bg-card shadow rounded-lg p-6">
                 <h3 className="text-lg font-semibold mb-4 flex items-center">
                   <Eye className="w-5 h-5 mr-2" />
                   SEO Önizleme
                 </h3>
                 <div className="space-y-3">
                   <div>
-                    <h4 className="text-lg text-blue-600 hover:underline cursor-pointer">
+                    <h4 className="text-lg text-primary hover:underline cursor-pointer">
                       {seoData.title}
                     </h4>
                     <p className="text-sm text-green-600">{seoData.canonical}</p>
-                    <p className="text-sm text-gray-600 mt-1">{seoData.description}</p>
+                    <p className="text-sm text-muted-foreground mt-1">{seoData.description}</p>
                   </div>
                   <div className="flex flex-wrap gap-1">
                     {seoData.keywords.slice(0, 5).map((keyword, index) => (
-                      <span key={index} className="px-2 py-1 bg-gray-100 text-xs rounded">
+                      <span key={index} className="px-2 py-1 bg-muted text-xs rounded">
                         {keyword}
                       </span>
                     ))}
@@ -209,21 +209,21 @@ ${JSON.stringify(data.structuredData, null, 2)}
               </div>
 
               {/* Meta Tags */}
-              <div className="bg-white shadow rounded-lg p-6">
+              <div className="bg-card shadow rounded-lg p-6">
                 <h3 className="text-lg font-semibold mb-4 flex items-center">
                   <Code className="w-5 h-5 mr-2" />
                   Meta Tags
                 </h3>
-                <pre className="bg-gray-50 p-4 rounded text-xs overflow-x-auto">
+                <pre className="bg-muted p-4 rounded text-xs overflow-x-auto">
                   {generateMetaTags(seoData)}
                 </pre>
               </div>
 
               {/* Structured Data */}
               {seoData.structuredData && (
-                <div className="bg-white shadow rounded-lg p-6">
+                <div className="bg-card shadow rounded-lg p-6">
                   <h3 className="text-lg font-semibold mb-4">Structured Data (JSON-LD)</h3>
-                  <pre className="bg-gray-50 p-4 rounded text-xs overflow-x-auto">
+                  <pre className="bg-muted p-4 rounded text-xs overflow-x-auto">
                     {JSON.stringify(seoData.structuredData, null, 2)}
                   </pre>
                 </div>

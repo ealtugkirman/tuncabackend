@@ -143,10 +143,10 @@ export default function AdminEventsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-[40vh]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Yükleniyor...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Yükleniyor...</p>
         </div>
       </div>
     )
@@ -156,12 +156,12 @@ export default function AdminEventsPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Etkinlikler</h1>
-          <p className="text-gray-600">Etkinlikleri yönetin</p>
+          <h1 className="text-2xl font-bold text-foreground">Etkinlikler</h1>
+          <p className="text-muted-foreground">Etkinlikleri yönetin</p>
         </div>
         <Link
           href="/admin/events/new"
-          className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center space-x-2"
+          className="bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:opacity-90 flex items-center space-x-2"
         >
           <Plus className="w-4 h-4" />
           <span>Yeni Etkinlik</span>
@@ -169,9 +169,9 @@ export default function AdminEventsPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white shadow rounded-lg p-6">
+      <div className="bg-card shadow rounded-lg p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-medium text-gray-900">Filtreler</h3>
+          <h3 className="text-lg font-medium text-foreground">Filtreler</h3>
           <Button variant="outline" onClick={clearFilters} className="flex items-center space-x-2">
             <Filter className="w-4 h-4" />
             <span>Temizle</span>
@@ -183,7 +183,7 @@ export default function AdminEventsPage() {
           <div className="space-y-2">
             <label className="text-sm font-medium">Arama</label>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
               <Input
                 placeholder="Başlık, özet veya içerik..."
                 value={search}
@@ -298,13 +298,13 @@ export default function AdminEventsPage() {
         </div>
       </div>
 
-      <div className="bg-white shadow rounded-lg">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Tüm Etkinlikler</h3>
+      <div className="bg-card shadow rounded-lg">
+        <div className="px-6 py-4 border-b border-border">
+          <h3 className="text-lg font-medium text-foreground">Tüm Etkinlikler</h3>
         </div>
-        <div className="divide-y divide-gray-200">
+        <div className="divide-y divide-border">
           {events.length === 0 ? (
-            <div className="px-6 py-8 text-center text-gray-500">
+            <div className="px-6 py-8 text-center text-muted-foreground">
               Henüz etkinlik bulunmuyor.
             </div>
           ) : (
@@ -312,21 +312,21 @@ export default function AdminEventsPage() {
               <div key={event.id} className="px-6 py-4 flex items-center justify-between">
                 <div className="flex-1">
                   <div className="flex items-center space-x-2">
-                    <h4 className="text-lg font-medium text-gray-900">{event.title}</h4>
+                    <h4 className="text-lg font-medium text-foreground">{event.title}</h4>
                     {event.published ? (
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-500/15 text-green-400">
                         <Eye className="w-3 h-3 mr-1" />
                         Yayında
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-muted text-foreground">
                         <EyeOff className="w-3 h-3 mr-1" />
                         Taslak
                       </span>
                     )}
                   </div>
-                  <p className="text-sm text-gray-600 mt-1">{event.excerpt}</p>
-                  <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
+                  <p className="text-sm text-muted-foreground mt-1">{event.excerpt}</p>
+                  <div className="flex items-center space-x-4 mt-2 text-xs text-muted-foreground">
                     <span>Tarih: {event.date}</span>
                     <span>Kategori: {event.category}</span>
                     {event.location && (
@@ -341,14 +341,14 @@ export default function AdminEventsPage() {
                 <div className="flex items-center space-x-2">
                   <Link
                     href={`/admin/events/${event.id}`}
-                    className="text-blue-600 hover:text-blue-900"
+                    className="text-primary hover:text-primary/80"
                     title="Görüntüle"
                   >
                     <Eye className="w-4 h-4" />
                   </Link>
                   <Link
                     href={`/admin/events/${event.id}/edit`}
-                    className="text-indigo-600 hover:text-indigo-900"
+                    className="text-primary hover:text-primary/80"
                     title="Düzenle"
                   >
                     <Edit className="w-4 h-4" />
@@ -369,9 +369,9 @@ export default function AdminEventsPage() {
         
         {/* Pagination */}
         {pagination && pagination.totalPages > 1 && (
-          <div className="px-6 py-4 border-t border-gray-200">
+          <div className="px-6 py-4 border-t border-border">
             <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-700">
+              <div className="text-sm text-muted-foreground">
                 Toplam {pagination.totalCount} etkinlik, sayfa {pagination.page} / {pagination.totalPages}
               </div>
               <div className="flex items-center space-x-2">
@@ -384,7 +384,7 @@ export default function AdminEventsPage() {
                   <ChevronLeft className="w-4 h-4" />
                   Önceki
                 </Button>
-                <span className="text-sm text-gray-700">
+                <span className="text-sm text-muted-foreground">
                   {pagination.page} / {pagination.totalPages}
                 </span>
                 <Button

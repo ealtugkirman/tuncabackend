@@ -56,11 +56,11 @@ export default async function CareerDetailPage({ params }: CareerDetailPageProps
       case 'REVIEWED':
         return 'bg-blue-100 text-blue-800'
       case 'ACCEPTED':
-        return 'bg-green-100 text-green-800'
+        return 'bg-green-500/15 text-green-400'
       case 'REJECTED':
         return 'bg-red-100 text-red-800'
       default:
-        return 'bg-gray-100 text-gray-800'
+        return 'bg-muted text-foreground'
     }
   }
 
@@ -70,14 +70,14 @@ export default async function CareerDetailPage({ params }: CareerDetailPageProps
         <div className="flex items-center space-x-4">
           <Link
             href="/admin/career"
-            className="flex items-center text-gray-600 hover:text-gray-900"
+            className="flex items-center text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Geri
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Kariyer Başvurusu</h1>
-            <p className="text-gray-600">Başvuru detayları</p>
+            <h1 className="text-2xl font-bold text-foreground">Kariyer Başvurusu</h1>
+            <p className="text-muted-foreground">Başvuru detayları</p>
           </div>
         </div>
         <div className="flex items-center space-x-2">
@@ -91,30 +91,30 @@ export default async function CareerDetailPage({ params }: CareerDetailPageProps
         <div className="lg:col-span-2 space-y-6">
           {/* Cover Letter */}
           {application.coverLetter && (
-            <div className="bg-white shadow rounded-lg p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Ön Yazı</h3>
+            <div className="bg-card shadow rounded-lg p-6">
+              <h3 className="text-lg font-medium text-foreground mb-4">Ön Yazı</h3>
               <div className="prose max-w-none">
-                <p className="text-gray-700 whitespace-pre-wrap">{application.coverLetter}</p>
+                <p className="text-muted-foreground whitespace-pre-wrap">{application.coverLetter}</p>
               </div>
             </div>
           )}
 
           {/* Education */}
           {application.education && (
-            <div className="bg-white shadow rounded-lg p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Eğitim Bilgileri</h3>
+            <div className="bg-card shadow rounded-lg p-6">
+              <h3 className="text-lg font-medium text-foreground mb-4">Eğitim Bilgileri</h3>
               <div className="prose max-w-none">
-                <p className="text-gray-700 whitespace-pre-wrap">{application.education}</p>
+                <p className="text-muted-foreground whitespace-pre-wrap">{application.education}</p>
               </div>
             </div>
           )}
 
           {/* Experience */}
           {application.experience && (
-            <div className="bg-white shadow rounded-lg p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Deneyim Bilgileri</h3>
+            <div className="bg-card shadow rounded-lg p-6">
+              <h3 className="text-lg font-medium text-foreground mb-4">Deneyim Bilgileri</h3>
               <div className="prose max-w-none">
-                <p className="text-gray-700 whitespace-pre-wrap">{application.experience}</p>
+                <p className="text-muted-foreground whitespace-pre-wrap">{application.experience}</p>
               </div>
             </div>
           )}
@@ -122,61 +122,61 @@ export default async function CareerDetailPage({ params }: CareerDetailPageProps
 
         <div className="space-y-6">
           {/* Applicant Information */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Başvuran Bilgileri</h3>
+          <div className="bg-card shadow rounded-lg p-6">
+            <h3 className="text-lg font-medium text-foreground mb-4">Başvuran Bilgileri</h3>
             <div className="space-y-4">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-                  <User className="w-5 h-5 text-gray-600" />
+                <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
+                  <User className="w-5 h-5 text-muted-foreground" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-900">{application.fullName}</p>
-                  <p className="text-sm text-gray-600">Ad Soyad</p>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-3">
-                <Mail className="w-5 h-5 text-gray-400" />
-                <div>
-                  <p className="text-sm font-medium text-gray-900">{application.email}</p>
-                  <p className="text-sm text-gray-600">Email</p>
+                  <p className="text-sm font-medium text-foreground">{application.fullName}</p>
+                  <p className="text-sm text-muted-foreground">Ad Soyad</p>
                 </div>
               </div>
 
               <div className="flex items-center space-x-3">
-                <Phone className="w-5 h-5 text-gray-400" />
+                <Mail className="w-5 h-5 text-muted-foreground" />
                 <div>
-                  <p className="text-sm font-medium text-gray-900">{application.phone}</p>
-                  <p className="text-sm text-gray-600">Telefon</p>
+                  <p className="text-sm font-medium text-foreground">{application.email}</p>
+                  <p className="text-sm text-muted-foreground">Email</p>
                 </div>
               </div>
 
               <div className="flex items-center space-x-3">
-                <Briefcase className="w-5 h-5 text-gray-400" />
+                <Phone className="w-5 h-5 text-muted-foreground" />
                 <div>
-                  <p className="text-sm font-medium text-gray-900">{getPositionTypeText(application.positionType)}</p>
-                  <p className="text-sm text-gray-600">Pozisyon</p>
+                  <p className="text-sm font-medium text-foreground">{application.phone}</p>
+                  <p className="text-sm text-muted-foreground">Telefon</p>
                 </div>
               </div>
 
               <div className="flex items-center space-x-3">
-                <Calendar className="w-5 h-5 text-gray-400" />
+                <Briefcase className="w-5 h-5 text-muted-foreground" />
                 <div>
-                  <p className="text-sm font-medium text-gray-900">
+                  <p className="text-sm font-medium text-foreground">{getPositionTypeText(application.positionType)}</p>
+                  <p className="text-sm text-muted-foreground">Pozisyon</p>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <Calendar className="w-5 h-5 text-muted-foreground" />
+                <div>
+                  <p className="text-sm font-medium text-foreground">
                     {new Date(application.appliedAt).toLocaleDateString('tr-TR')}
                   </p>
-                  <p className="text-sm text-gray-600">Başvuru Tarihi</p>
+                  <p className="text-sm text-muted-foreground">Başvuru Tarihi</p>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Application Details */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Başvuru Detayları</h3>
+          <div className="bg-card shadow rounded-lg p-6">
+            <h3 className="text-lg font-medium text-foreground mb-4">Başvuru Detayları</h3>
             <div className="space-y-4">
               <div>
-                <p className="text-sm font-medium text-gray-900">Durum</p>
+                <p className="text-sm font-medium text-foreground">Durum</p>
                 <div className="mt-1">
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(application.status)}`}>
                     {getStatusText(application.status)}
@@ -186,8 +186,8 @@ export default async function CareerDetailPage({ params }: CareerDetailPageProps
 
               {application.reviewedAt && (
                 <div>
-                  <p className="text-sm font-medium text-gray-900">İncelenme Tarihi</p>
-                  <p className="text-sm text-gray-600 mt-1">
+                  <p className="text-sm font-medium text-foreground">İncelenme Tarihi</p>
+                  <p className="text-sm text-muted-foreground mt-1">
                     {new Date(application.reviewedAt).toLocaleDateString('tr-TR')}
                   </p>
                 </div>
@@ -195,7 +195,7 @@ export default async function CareerDetailPage({ params }: CareerDetailPageProps
 
               {application.languages && application.languages.length > 0 && (
                 <div>
-                  <p className="text-sm font-medium text-gray-900">Diller</p>
+                  <p className="text-sm font-medium text-foreground">Diller</p>
                   <div className="mt-1 flex flex-wrap gap-1">
                     {application.languages.map((language, index) => (
                       <span key={index} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
@@ -209,14 +209,14 @@ export default async function CareerDetailPage({ params }: CareerDetailPageProps
           </div>
 
           {/* CV Download */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Dosyalar</h3>
+          <div className="bg-card shadow rounded-lg p-6">
+            <h3 className="text-lg font-medium text-foreground mb-4">Dosyalar</h3>
             <div className="space-y-3">
               <a
                 href={application.cv}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                className="w-full flex items-center justify-center px-4 py-2 border border-border rounded-md text-muted-foreground hover:bg-muted"
               >
                 <Download className="w-4 h-4 mr-2" />
                 CV İndir
@@ -225,14 +225,14 @@ export default async function CareerDetailPage({ params }: CareerDetailPageProps
           </div>
 
           {/* Actions */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">İşlemler</h3>
+          <div className="bg-card shadow rounded-lg p-6">
+            <h3 className="text-lg font-medium text-foreground mb-4">İşlemler</h3>
             <div className="space-y-3">
-              <button className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+              <button className="w-full flex items-center justify-center px-4 py-2 border border-border rounded-md text-muted-foreground hover:bg-muted">
                 <Mail className="w-4 h-4 mr-2" />
                 Email Gönder
               </button>
-              <button className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+              <button className="w-full flex items-center justify-center px-4 py-2 border border-border rounded-md text-muted-foreground hover:bg-muted">
                 <Phone className="w-4 h-4 mr-2" />
                 Telefon Et
               </button>

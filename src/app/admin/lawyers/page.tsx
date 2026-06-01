@@ -142,10 +142,10 @@ export default function AdminLawyersPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-[40vh]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Yükleniyor...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Yükleniyor...</p>
         </div>
       </div>
     )
@@ -175,9 +175,9 @@ export default function AdminLawyersPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white shadow rounded-lg p-6">
+      <div className="bg-card shadow rounded-lg p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-medium text-gray-900">Filtreler</h3>
+          <h3 className="text-lg font-medium text-foreground">Filtreler</h3>
           <Button variant="outline" onClick={clearFilters} className="flex items-center space-x-2">
             <Filter className="w-4 h-4" />
             <span>Temizle</span>
@@ -189,7 +189,7 @@ export default function AdminLawyersPage() {
           <div className="space-y-2">
             <label className="text-sm font-medium">Arama</label>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
               <Input
                 placeholder="İsim, unvan veya bio..."
                 value={search}
@@ -329,9 +329,9 @@ export default function AdminLawyersPage() {
           
           {/* Pagination */}
           {pagination && pagination.totalPages > 1 && (
-            <div className="px-6 py-4 border-t border-gray-200">
+            <div className="px-6 py-4 border-t border-border">
               <div className="flex items-center justify-between">
-                <div className="text-sm text-gray-700">
+                <div className="text-sm text-muted-foreground">
                   Toplam {pagination.totalCount} avukat, sayfa {pagination.page} / {pagination.totalPages}
                 </div>
                 <div className="flex items-center space-x-2">
@@ -344,7 +344,7 @@ export default function AdminLawyersPage() {
                     <ChevronLeft className="w-4 h-4" />
                     Önceki
                   </Button>
-                  <span className="text-sm text-gray-700">
+                  <span className="text-sm text-muted-foreground">
                     {pagination.page} / {pagination.totalPages}
                   </span>
                   <Button
