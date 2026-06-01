@@ -8,6 +8,13 @@ type DbHealth = {
   ok: boolean
   error?: string
   detail?: string
+  hint?: string
+  config?: {
+    projectRef?: string
+    host?: string
+    port?: string
+    hasPgbouncer?: boolean
+  }
   counts?: { lawyers: number; announcements: number; events: number }
 }
 
@@ -34,13 +41,25 @@ export function DbConnectionBanner() {
       <AlertTitle>Veritabanı bağlantısı yok</AlertTitle>
       <AlertDescription className="space-y-1">
         <p>{health.error}</p>
+        {health.config?.projectRef ? (
+          <p className="text-xs">
+            Vercel şu an bağlanmaya çalışıyor:{' '}
+            <code>postgres.{health.config.projectRef}</code>
+            {health.config.host ? (
+              <>
+                {' '}
+                @ <code>{health.config.host}</code>
+              </>
+            ) : null}
+          </p>
+        ) : null}
         {health.detail ? (
           <p className="font-mono text-xs opacity-90">{health.detail}</p>
         ) : null}
+        {health.hint ? <p className="text-xs">{health.hint}</p> : null}
         <p className="text-xs">
-          Vercel → Environment Variables → Production: <code>DATABASE_URL</code> (Supabase
-          &quot;Transaction&quot; pooler, port 6543, <code>?pgbouncer=true</code>). Değişiklikten sonra
-          Redeploy yapın.
+          Supabase panelinden <strong>Transaction pooler (6543)</strong> URI’yi kopyalayıp Vercel →
+          Production → <code>DATABASE_URL</code> olarak yapıştırın, sonra <strong>Redeploy</strong>.
         </p>
       </AlertDescription>
     </Alert>

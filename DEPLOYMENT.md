@@ -130,7 +130,8 @@ npx tsx scripts/setup-admin-user.ts
 
 ### Common Issues
 
-1. **No data on deployment / empty lists**: Open `https://YOUR-DOMAIN/api/health/db` — if `ok: false`, fix `DATABASE_URL` on Vercel (Supabase Transaction pooler, port **6543**, `?pgbouncer=true`). Redeploy after changing env vars. Local `.env` and Vercel often point to different databases; production may also be empty until you migrate/seed.
+1. **`tenant/user postgres.XXXX not found`**: Vercel `DATABASE_URL` uses a **wrong or deleted** Supabase project ref. Copy the URI fresh from **Supabase → Connect → Transaction pooler (6543)**. Username must be `postgres.YOUR_PROJECT_REF` and host must match the dashboard (e.g. `aws-1-ap-southeast-1.pooler.supabase.com`, not an old project ref). Local `.env` and Vercel must use the **same** project.
+2. **No data on deployment / empty lists**: Open `https://YOUR-DOMAIN/api/health/db` — if `ok: false`, fix `DATABASE_URL` then Redeploy. Production may be empty until you run `npx prisma migrate deploy` against that database.
 2. **Database Connection**: Ensure `DATABASE_URL` is correct
 2. **Invalid credentials on login**: Run `npx tsx scripts/setup-admin-user.ts` against production `DATABASE_URL`
 3. **NextAuth Issues**: Check `NEXTAUTH_URL` matches the deployed domain and `NEXTAUTH_SECRET` is set
